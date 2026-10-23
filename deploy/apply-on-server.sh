@@ -58,8 +58,10 @@ for f in /etc/cron.daily/pm-mysql-backup /usr/local/bin/pm-monitor.sh; do
     if bash -n "$f" 2>/dev/null; then ok "bash -n $(basename "$f") 语法通过"; else bad "bash -n $f 语法错误"; fi
 done
 
-say "== 4) systemd 重载并重启巡检定时器"
+say "== 4) systemd 重载并启用/重启巡检定时器"
 if systemctl daemon-reload; then ok "daemon-reload"; else bad "daemon-reload"; fi
+# 必须先 enable：timer 默认未启用，仅 restart 不会开机自启，is-enabled 检查也会失败
+if systemctl enable pm-monitor.timer >/dev/null 2>&1; then ok "pm-monitor.timer 已设置开机自启"; else bad "pm-monitor.timer enable 失败"; fi
 if systemctl restart pm-monitor.timer; then ok "pm-monitor.timer 已重启"; else bad "pm-monitor.timer 重启失败"; fi
 systemctl is-enabled pm-monitor.timer >/dev/null 2>&1 && ok "pm-monitor.timer enabled" || bad "pm-monitor.timer 未 enabled"
 

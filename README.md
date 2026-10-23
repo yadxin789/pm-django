@@ -195,15 +195,24 @@ systemctl restart pm-django pm-celery pm-celery-beat
 ./venv/bin/python manage.py seed_beat
 ```
 
-| Beat 任务 | 调度 | 对应 Laravel 调度 |
-|---|---|---|
-| `pm.tasks.refresh_all_projects_status` | 每 60 秒 | `projects:refresh-status`（参考为每 3 秒，可调） |
-| `pm.tasks.check_upcoming_deadlines` | 每天 08:00 | 未来 3 天到期提醒 |
-| `pm.tasks.check_overdue_tasks` | 每 30 分钟 | 任务逾期检查 |
-| `pm.tasks.check_audit_overdue` | 每天 10:00/15:00 | 审核超时提醒 |
-| `pm.tasks.check_overdue_projects` | 每天 01:00 | 项目逾期检查 |
+调度表的**唯一可信源**是 `pm/celery.py` 的 `BEAT_SCHEDULES`（7 条），任务本体注册于同一文件；
+`seed_beat` 只负责把这张表同步成 `django_celery_beat` 的 PeriodicTask。改调度请改 `BEAT_SCHEDULES`
+并重跑下面的命令，不要直接改数据库，也不要另写一份 `beat_schedule`。
 
-任务注册于 `core/tasks.py`，由 `pm/celery.py`（autodiscover_tasks）自动发现；调度走 `django_celery_beat` DatabaseScheduler，部署的 `pm-celery.service` 与 `pm-celery-beat.service` 分别承载 worker 与调度器（依赖 Redis）。
+| 调度名 | 任务 | 时间 | 对应 Laravel 调度 |
+|---|---|---|---|
+| projects-refresh-status-daily | `core.management.commands.refresh_project_status` | 每天 00:00 | `projects:refresh-status` |
+| reminder-overdue-projects-daily | `core.services.reminder_service.check_overdue_projects` | 每天 01:00 | 项目逾期检查 |
+| trash-purge-expired-daily | `core.management.commands.purge_expired_trash` | 每天 03:30 | 回收站到期清理 |
+| files-gc-daily | `core.management.commands.audit_files`（`fix`+`purge_dead`） | 每天 04:00 | 物理文件巡检 |
+| reminder-upcoming-deadlines-daily | `core.services.reminder_service.check_upcoming_deadlines` | 每天 08:00 | 未来 3 天到期提醒 |
+| reminder-audit-overdue-twicedaily | `core.services.reminder_service.check_audit_overdue` | 每天 10:00/15:00 | 审核超时提醒 |
+| reminder-overdue-tasks-30min | `core.services.reminder_service.check_overdue_tasks` | 每 30 分钟 | 任务逾期检查 |
+
+> 提示：`pm/celery.py` 里的静态 `beat_schedule` 仅在调试用默认调度器时生效；线上的
+> `pm-celery-beat.service` 用 DatabaseScheduler，只读库里的 PeriodicTask。
+
+所有任务都由 `pm/celery.py` 注册，随 `-A pm` 一起加载（`core/management/commands/*` 的管理命令经薄封装的任务函数调用）；调度走 `django_celery_beat` DatabaseScheduler，部署的 `pm-celery.service` 与 `pm-celery-beat.service` 分别承载 worker 与调度器（依赖 Redis）。
 
 ---
 

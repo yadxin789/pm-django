@@ -2,9 +2,13 @@
 """Celery 应用实例 + 定时任务注册（对齐参考目录 routes/console.php）。
 
 本项目使用 Celery + Celery Beat 调度，所有调度都集中在此文件。
-服务器需运行：
-    celery -A pause.celery worker -l info
-    celery -A pause.celery beat   -l info
+服务器需运行（注意 App 名是 `pm`，不是参考实现的 `pause`）：
+    celery -A pm worker -l info
+    celery -A pm beat   -l info
+
+线上 beat 由 deploy/pm-celery-beat.service 以 DatabaseScheduler 启动，
+只读 django_celery_beat 库里的 PeriodicTask；本文件的 BEAT_SCHEDULES 通过
+`manage.py seed_beat` 同步过去，两者共用同一份描述，改完务必重跑该命令。
 """
 import os
 

@@ -89,7 +89,7 @@
             <p class="mb-2">后台服务启动方式（按部署环境选择其一，<strong>两者不要同时使用</strong>，否则定时任务会重复执行）：</p>
             <ul class="mb-2">
                 <li><strong>开发环境（Windows）</strong>：激活 <code>.venv</code> 后，分别启动 <code>python manage.py runserver 0.0.0.0:8000</code>、队列 <code>celery -A pm worker -l info</code> 与定时调度 <code>celery -A pm beat -l info</code>。</li>
-                <li><strong>生产环境（openEuler / Linux）</strong>：由 <code>deploy.sh</code> 自动配置——Web 服务 <code>gunicorn</code> 常驻 + 队列常驻进程（systemd 服务 <code>pm-worker</code>，即 <code>celery -A pm worker</code>）+ <code>celery -A pm beat</code> 定时调度。</li>
+                <li><strong>生产环境（openEuler / Linux）</strong>：由 <code>deploy.sh</code> 自动配置——Web 服务 <code>gunicorn</code> 常驻 + 队列常驻进程（systemd 服务 <code>pm-celery</code>，即 <code>celery -A pm worker</code>）+ <code>pm-celery-beat</code>（<code>celery -A pm beat</code>）定时调度。</li>
             </ul>
             <p class="text-muted mt-2 mb-0 small">
                 <i class="fa fa-lightbulb-o me-1"></i>
