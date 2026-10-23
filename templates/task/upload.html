@@ -1,0 +1,22 @@
+{% extends 'layouts/app.html' %}
+{% block title %}上传文件{% endblock %}
+{% block content %}
+<h1 class="mb-4">上传文件 - {{ task.name }}</h1>
+
+{% if messages %}
+{% for message in messages %}
+    {% if message.tags == 'success' %}<div class="alert alert-success">{{ message }}，3秒后返回我的待执行任务列表。</div>
+    {% elif message.tags == 'error' %}<div class="alert alert-danger">文件上传不成功。错误：{{ message }}</div>{% endif %}
+{% endfor %}
+{% endif %}
+
+<form method="POST" action="{% url 'task.store-file' task.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="file" class="form-label">选择文件</label>
+        <input type="file" name="file" id="file" class="form-control" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.txt,.csv,.zip,.rar,.7z">
+        <small class="text-muted">支持格式：PDF、Word、Excel、PPT、图片、文本、压缩包等，无大小限制</small>
+    </div>
+    <button type="submit" class="btn btn-primary">上传</button>
+</form>
+{% endblock %}

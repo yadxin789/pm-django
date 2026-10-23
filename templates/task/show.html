@@ -1,0 +1,135 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}任务详情{% endblock %}
+{% block content %}
+<h1 class="mb-4">{{ task.name }}</h1>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">任务信息</div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">所属项目</dt>
+                    <dd class="col-sm-8">
+                        {% if task.project %}
+                        <a href="{% url 'project.show' task.project.id %}">{{ task.project.name }}</a>
+                        {% else %}<span class="text-muted">-</span>{% endif %}
+                    </dd>
+                    <dt class="col-sm-4">部门</dt>
+                    <dd class="col-sm-8">{% if task.department %}{{ task.department.name }}{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-4">执行人</dt>
+                    <dd class="col-sm-8">{% if task.executor %}{{ task.executor.name }}{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-4">审核人</dt>
+                    <dd class="col-sm-8">{% if task.auditor %}{{ task.auditor.name }}{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-4">状态</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge" style="background-color: {{ task.status|status_color }}; color: white;">{{ task.status|status_label }}</span>
+                    </dd>
+                    <dt class="col-sm-4">开始日期</dt>
+                    <dd class="col-sm-8">{{ task.start_date|date:'Y-m-d' }}</dd>
+                    <dt class="col-sm-4">截止日期</dt>
+                    <dd class="col-sm-8">{{ task.end_date|date:'Y-m-d' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 任务操作入口：只有「项目已暂停」才冻结，其余状态（含逾期、逾期完成）都必须能上传/变更/审核 #}
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="fa fa-cogs me-2"></i>任务操作</h5>
+    </div>
+    <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        {% can_upload_file task request.user.id as can_up %}{% if can_up %}
+        <a href="{% url 'task.upload' task.id %}" class="btn btn-primary">上传文件</a>
+        {% endif %}
+        {% can_apply_extension task request.user.id as can_ext %}{% if can_ext %}
+        <a href="{% url 'task.apply-extension' task.id %}" class="btn btn-warning">申请延期</a>
+        {% endif %}
+        {% can_audit task request.user.id as can_au %}{% if can_au %}
+        <a href="{% url 'task.audit' task.id %}" class="btn btn-success">审核文件</a>
+        {% endif %}
+        {% can_update_file task request.user.id request.user.is_admin as can_upd %}{% if can_upd %}
+        <a href="{% url 'task.update-file' task.id %}" class="btn btn-warning">更新文件</a>
+        {% endif %}
+        {% if task.project.is_inactive %}
+        <span class="text-muted small">项目已暂停，任务文件的上传/变更/审核已冻结，项目恢复后自动恢复。</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h4>文件列表</h4></div>
+    <div class="card-body">
+        {% if not files %}
+        <p class="text-center text-muted">暂无文件</p>
+        {% else %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>文件名</th><th>版本</th><th>上传人</th><th>审核人</th><th>上传日期</th><th>文件审核状态</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td>{{ file.original_name }}</td>
+                    <td>V{{ file.version }}</td>
+                    <td>{% if file.uploader %}{{ file.uploader.name }}{% else %}-{% endif %}</td>
+                    <td>{% if file.auditor %}{{ file.auditor.name }}{% else %}-{% endif %}</td>
+                    <td>{{ file.created_at|date:'Y-m-d H:i' }}</td>
+                    <td>
+                        {% if file.status == 'pending' %}<span class="badge bg-warning text-dark">待审核</span>
+                        {% elif file.status == 'approved' %}<span class="badge bg-success">已通过</span>
+                        {% elif file.status == 'rejected' %}<span class="badge bg-danger">已驳回</span>
+                        {% else %}<span class="badge bg-secondary">未知</span>{% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'file.preview' file.id %}" class="btn btn-sm btn-info" target="_blank">预览</a>
+                        <a href="{% url 'file.download' file.id %}" class="btn btn-sm btn-success">下载</a>
+                        {% if file.status == 'approved' %}{% can_update_file task request.user.id request.user.is_admin as can_upd %}{% if can_upd %}
+                        <a href="{% url 'task.update-file' task.id %}" class="btn btn-sm btn-warning">更新</a>{% endif %}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h4>延期申请记录</h4></div>
+    <div class="card-body">
+        {% if not extension_applications %}
+        <p class="text-center text-muted">暂无延期申请记录</p>
+        {% else %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>申请人</th><th>审批人</th><th>申请天数</th><th>申请理由</th><th>状态</th><th>申请时间</th><th>驳回理由</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for application in extension_applications %}
+                <tr>
+                    <td>{{ application.applicant.name }}</td>
+                    <td>{% if application.approver %}{{ application.approver.name }}{% else %}-{% endif %}</td>
+                    <td>{{ application.days }}天</td>
+                    <td>{{ application.reason }}</td>
+                    <td>
+                        {% if application.status == 'pending' %}<span class="badge badge-warning">待审批</span>
+                        {% elif application.status == 'approved' %}<span class="badge badge-success">已通过</span>
+                        {% elif application.status == 'rejected' %}<span class="badge badge-danger">已驳回</span>{% endif %}
+                    </td>
+                    <td>{{ application.created_at|date:'Y-m-d H:i' }}</td>
+                    <td>{% if application.reject_reason %}{{ application.reject_reason }}{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'layouts/app.html' %}
+{% block title %}状态管理{% endblock %}
+{% block content %}
+<h1 class="mb-4">状态管理</h1>
+
+<div class="alert alert-info">
+    <strong>说明：</strong>状态来自 laravel-model-status 的状态机类，无法新增或删除，只能修改<strong>显示标签</strong>。修改后系统各处（列表、详情、仪表盘、任务列表等）都会统一显示为中文标签。恢复方法如下：
+    <ol class="mb-0 mt-2">
+        <li>手动删除 mysql ai_pm.{项目|任务} 里相关行。</li>
+        <li>恢复时会同步为默认中文标签。</li>
+    </ol>
+</div>
+
+<div class="card">
+    <div class="card-header">状态列表</div>
+    <div class="card-body"><div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th style="width: 25%;">状态机类名</th>
+                    <th style="width: 20%;">显示标签</th>
+                    <th style="width: 25%;">模型类型</th>
+                    <th style="width: 150px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in statuses %}
+            <tr>
+                <td>{{ s.id }}</td>
+                <td><code class="small">{{ s.state_class }}</code></td>
+                <td>
+                    {% if s.custom_label %}
+                    <span class="badge bg-primary">{{ s.custom_label }}</span>
+                    {% else %}
+                    <span class="text-muted small">未设置</span>
+                    {% endif %}
+                </td>
+                <td><small class="text-muted">{{ s.state_class|truncatechars:45 }}</small></td>
+                <td>
+                    <a href="{% url 'admin.statuses.edit' s.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fa fa-edit"></i> 编辑标签
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted">暂无状态</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+</div>
+{% endblock %}

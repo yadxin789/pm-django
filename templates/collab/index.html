@@ -1,0 +1,22 @@
+{% extends 'layouts/app.html' %}
+{% block title %}协同办公 - {{ project.name }}{% endblock %}
+{% block content %}
+{% include 'project/partials/project-tabs.html' with active_tab='collab' %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1"><i class="fa fa-users me-2 text-primary"></i>协同办公</h1>
+            <p class="text-muted mb-0">项目：{{ project.name }}（{{ project.code }}）· 项目组成员可共同编辑文档</p>
+        </div>
+        <div><a href="{% url 'project.collab.create' project.id %}" class="btn btn-primary"><i class="fa fa-plus me-2"></i>新建文档</a></div>
+    </div>
+    {% if not documents %}
+    <div class="card"><div class="card-body text-center py-5">
+        <i class="fa fa-file-text-o" style="font-size: 48px; color: #c5c9d4;"></i>
+        <p class="text-muted mt-3 mb-0">该项目还没有协作文档，点击右上角"新建文档"开始协同编辑。</p>
+    </div></div>
+    {% else %}
+    {% include 'collab/_document_table.html' with doc_mode='collab' %}
+    {% endif %}
+</div>
+{% endblock %}

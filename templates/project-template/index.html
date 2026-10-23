@@ -1,0 +1,38 @@
+{% extends 'layouts/app.html' %}
+{% block title %}项目模板管理{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>项目模板管理</h1>
+    <a href="{% url 'project-template.create' %}" class="btn btn-primary"><i class="fa fa-plus me-2"></i>创建项目模板</a>
+</div>
+<div class="card"><div class="card-body">
+    {% if not templates %}
+    <p class="text-center text-muted py-4">暂无项目模板</p>
+    {% else %}
+    <table class="table table-striped">
+        <thead><tr><th>项目模板名称</th><th>描述</th><th>创建人</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody>
+        {% for template in templates %}
+        <tr>
+            <td>{{ template.name }}</td>
+            <td>{{ template.description|default:'-' }}</td>
+            <td>{% if template.user %}{{ template.user.name }}{% else %}-{% endif %}</td>
+            <td>{{ template.created_at|date:'Y-m-d H:i' }}</td>
+            <td>
+                <a href="{% url 'project-template.edit' template.id %}" class="btn btn-sm btn-primary"><i class="fa fa-edit me-1"></i>编辑</a>
+                <form action="{% url 'project-template.destroy' template.id %}" method="POST" class="d-inline">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确定删除该模板？')"><i class="fa fa-trash me-1"></i>删除</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% if templates.has_other_pages %}<nav><ul class="pagination">
+        {% if templates.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ templates.previous_page_number }}">&laquo;</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">{{ templates.number }} / {{ templates.paginator.num_pages }}</span></li>
+        {% if templates.has_next %}<li class="page-item"><a class="page-link" href="?page={{ templates.next_page_number }}">&raquo;</a></li>{% endif %}
+    </ul></nav>{% endif %}
+    {% endif %}
+</div></div>
+{% endblock %}

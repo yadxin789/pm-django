@@ -1,0 +1,18 @@
+{% extends 'layouts/app.html' %}
+{% block title %}申请延期{% endblock %}
+{% block content %}
+<h1 class="mb-4">申请延期 - {{ task.name }}</h1>
+
+<form method="POST" action="{% url 'task.store-extension' task.id %}">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="days" class="form-label">延期天数</label>
+        <input type="number" name="days" id="days" class="form-control" min="1" required>
+    </div>
+    <div class="mb-3">
+        <label for="reason" class="form-label">延期原因</label>
+        <textarea name="reason" id="reason" class="form-control" rows="3" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">提交申请</button>
+</form>
+{% endblock %}

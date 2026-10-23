@@ -1,0 +1,51 @@
+{% comment %}
+项目协作文档列表（协同办公页与电话会议「会议文档」面板共用同一份标记）。
+
+共用它的意义：两个模块展示的字段（类型/大小/版本/创建人/最后编辑人/更新时间）与
+可用操作（演示或编辑 / 下载 / 删除）天然一致，不会一边改了另一边忘了改。
+
+需要的上下文：
+  project      —— 当前项目
+  documents    —— CollabDocument 查询集/列表（含 creator/updater/display_size）
+  doc_mode     —— 'collab'（默认，编辑入口指向编辑器页面）
+                  'voice' （会议内，用按钮选为「演示文档」）
+{% endcomment %}
+<div class="card"><div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light"><tr><th>文档名称</th><th>类型</th><th>大小</th><th>版本</th><th>创建人</th><th>最后编辑人</th><th>更新时间</th><th class="text-end">操作</th></tr></thead>
+        <tbody>
+        {% for doc in documents %}
+        <tr>
+            <td><i class="fa {% if doc.extension == 'docx' %}fa-file-word-o text-primary{% elif doc.extension == 'xlsx' %}fa-file-excel-o text-success{% else %}fa-file-powerpoint-o text-danger{% endif %} me-2"></i>
+                {% if doc_mode == 'voice' %}
+                <a href="#" class="js-doc-present" data-doc-id="{{ doc.id }}" title="在会议中演示这份文档">{{ doc.name }}.{{ doc.extension }}</a>
+                {% else %}
+                <a href="{% url 'project.collab.open' project.id doc.id %}" title="打开协同编辑">{{ doc.name }}.{{ doc.extension }}</a>
+                {% endif %}
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ doc.extension|upper }}</span></td>
+            <td>{{ doc.display_size }}</td><td>v{{ doc.version }}</td>
+            <td>{% if doc.creator %}{{ doc.creator.name }}{% else %}—{% endif %}</td>
+            <td>{% if doc.updater %}{{ doc.updater.name }}{% else %}—{% endif %}</td>
+            <td>{{ doc.updated_at|date:'Y-m-d H:i' }}</td>
+            <td class="text-end">
+                {% if doc_mode == 'voice' %}
+                <button type="button" class="btn btn-sm btn-outline-primary js-doc-present" data-doc-id="{{ doc.id }}"><i class="fa fa-desktop"></i> 演示</button>
+                <a href="{% url 'project.collab.open' project.id doc.id %}" target="_blank" class="btn btn-sm btn-outline-primary" title="在新窗口打开协同编辑"><i class="fa fa-edit"></i></a>
+                {% else %}
+                <a href="{% url 'project.collab.open' project.id doc.id %}" class="btn btn-sm btn-outline-primary"><i class="fa fa-edit"></i> 编辑</a>
+                {% endif %}
+                <a href="/collab/download/{{ doc.id }}?k={{ doc.doc_key }}" class="btn btn-sm btn-outline-secondary" title="下载"><i class="fa fa-download"></i></a>
+                {% if doc.can_delete %}
+                    {% if doc_mode == 'voice' %}
+                    <button type="button" class="btn btn-sm btn-outline-danger js-doc-delete" data-doc-id="{{ doc.id }}" data-doc-name="{{ doc.name }}" title="删除"><i class="fa fa-trash"></i></button>
+                    {% else %}
+                    <form action="{% url 'project.collab.destroy' project.id doc.id %}" method="POST" class="d-inline" onsubmit="return confirm('确定删除文档《{{ doc.name }}》吗？删除后不可恢复。');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button></form>
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div></div>

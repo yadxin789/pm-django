@@ -1,0 +1,11 @@
+{% load pm_tags %}
+<li>
+    <div class="tree-item {% if active and active.id == doc.id %}active{% endif %}">
+        <i class="fa {% if doc.type == 3 %}fa-link{% elif doc.type == 2 %}fa-folder{% else %}fa-file-text{% endif %} text-muted"></i>
+        <a href="{% url 'knowledge.doc.read' doc.knowledge_id doc.id %}" class="text-decoration-none small">{{ doc.title }}</a>
+        <span class="text-muted small">{{ doc.read }}</span>
+    </div>
+    {% for child in children_map|get_item:doc.id %}
+    {% include 'knowledge/_tree-item.html' with doc=child children_map=children_map active=active %}
+    {% endfor %}
+</li>

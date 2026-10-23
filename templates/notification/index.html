@@ -1,0 +1,46 @@
+{% extends 'layouts/app.html' %}
+{% block title %}通知中心{% endblock %}
+{% block content %}
+<h1 class="mb-4">通知中心</h1>
+
+<form action="{% url 'notification.mark-all-read' %}" method="POST" class="mb-3">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">全部标为已读</button>
+</form>
+
+<div class="list-group">
+    {% for notification in notifications %}
+    <div class="list-group-item {% if not notification.is_read %}list-group-item-warning{% endif %}">
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <h5 class="font-weight-bold">{{ notification.title }}</h5>
+                <p>{{ notification.content }}</p>
+            </div>
+            <div class="text-right ms-3">
+                <small class="text-muted d-block mb-2">{{ notification.created_at|timesince }}前</small>
+                <div class="btn-group-vertical">
+                    {% if not notification.is_read %}
+                    <form action="{% url 'notification.mark-read' notification.id %}" method="POST" class="mb-1">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-secondary">标为已读</button>
+                    </form>
+                    {% endif %}
+                    <form action="{% url 'notification.destroy' notification.id %}" method="POST" onsubmit="return confirm('确定要删除这条通知吗？此操作不可恢复。')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="list-group-item text-center text-muted">暂无通知</div>
+    {% endfor %}
+</div>
+
+<div class="d-flex justify-content-center mt-3">
+    {% if notifications.has_previous %}<a class="btn btn-sm btn-outline-secondary me-1" href="?page={{ notifications.previous_page_number }}">上一页</a>{% endif %}
+    <span class="align-self-center mx-2">第 {{ notifications.number }} / {{ notifications.paginator.num_pages }} 页</span>
+    {% if notifications.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?page={{ notifications.next_page_number }}">下一页</a>{% endif %}
+</div>
+{% endblock %}

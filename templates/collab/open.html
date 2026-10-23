@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ doc.name }}.{{ doc.extension }} - 协同编辑</title>
+<style>
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+.editor-toolbar { flex: 0 0 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #fff; border-bottom: 1px solid #e3e6ef; box-sizing: border-box; }
+.doc-title { display: flex; align-items: center; font-size: 15px; font-weight: 600; color: #333; min-width: 0; }
+.type-tag { display: inline-block; margin-right: 8px; padding: 2px 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; border-radius: 4px; color: #fff; }
+.type-tag.docx { background: #2b7de9; }
+.type-tag.xlsx { background: #1e9e54; }
+.type-tag.pptx { background: #d24726; }
+.doc-title .doc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-title .badge { margin-left: 8px; font-size: 12px; font-weight: 400; color: #666; background: #f0f0f5; border: 1px solid #e3e6ef; border-radius: 4px; padding: 2px 8px; flex: 0 0 auto; }
+.btn-back { display: inline-block; padding: 6px 14px; border: 1px solid #d5d9e2; border-radius: 6px; background: #fff; color: #555; text-decoration: none; font-size: 13px; flex: 0 0 auto; cursor: pointer; }
+.btn-back:hover { background: #f5f6fa; color: #333; }
+#placeholder { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<div class="editor-toolbar">
+    <div class="doc-title">
+        <span class="type-tag {{ doc.extension }}">{{ doc.extension|upper }}</span>
+        <span class="doc-name">{{ doc.name }}.{{ doc.extension }}</span>
+        <span class="badge">v{{ doc.version }}</span>
+    </div>
+    <a class="btn-back" href="{% url 'project.collab.index' project.id %}">← 返回文档列表</a>
+</div>
+<div id="placeholder"></div>
+<script type="text/javascript" src="{{ server_url }}/web-apps/apps/api/documents/api.js"></script>
+{{ config|json_script:'collab-config' }}
+<script type="text/javascript">
+(function () {
+    var config = JSON.parse(document.getElementById('collab-config').textContent);
+    function initEditor() {
+        var el = document.getElementById('placeholder');
+        if (!el) return;
+        try {
+            var editor = new DocsAPI.DocEditor('placeholder', config);
+            window.addEventListener('resize', function () { if (editor && typeof editor.resize === 'function') { try { editor.resize(); } catch (e) {} } });
+        } catch (e) {
+            el.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif;color:#666;">'
+                + '协同编辑器加载失败：' + (e && e.message ? e.message : e)
+                + '<br><a href="{% url 'project.collab.index' project.id %}" style="margin-top:16px;display:inline-block;padding:6px 16px;border:1px solid #999;border-radius:4px;text-decoration:none;color:#333;">返回文档列表</a>'
+                + '</div>';
+        }
+    }
+    if (document.readyState === 'complete') { initEditor(); } else { window.addEventListener('load', initEditor); }
+})();
+</script>
+</body>
+</html>

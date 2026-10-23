@@ -1,0 +1,371 @@
+{% extends 'layouts/app.html' %}
+{% load pm_tags %}
+{% block title %}AI 设置{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-11">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa fa-cog me-2 text-primary"></i>AI 设置
+                    <small class="text-muted fs-6 ms-2">管理员专用：多供应商 / 多模型 / API Key / 调用限流</small>
+                </h4>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'ai.welcome' %}" class="btn btn-sm btn-outline-secondary">开通引导</a>
+                </div>
+            </div>
+
+            {% if not setting.is_available or usable_count == 0 %}
+            <div class="alert alert-warning py-2">⚠️ AI 当前不可用：请至少为一家供应商填写 API Key、勾选「启用」，并保证该供应商下有「开放给用户」的模型。</div>
+            {% endif %}
+
+            {# ============ 概览 ============ #}
+            <div class="card mb-3">
+                <div class="card-header bg-white fw-bold">当前生效配置</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="small text-muted">状态</div>
+                            <div>
+                                {% if setting.is_available and usable_count > 0 %}
+                                <span class="badge bg-success">已开通 · 运行中</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{% if setting.enabled %}已启用但无可用模型{% else %}未启用{% endif %}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">已开通供应商</div>
+                            <div class="fw-bold">{{ opened_providers }} / {{ provider_count }} 家</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">用户可选模型</div>
+                            <div class="fw-bold">{{ usable_count }} 个</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">默认模型</div>
+                            <div class="fw-bold small">
+                                {% if default_model %}{{ default_model.full_label }}{% else %}未设置{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small text-muted">每用户限流 · 每分钟</div>
+                            <div class="fw-bold">{{ setting.rate_limit_minute|default:30 }} 次</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small text-muted">每用户限流 · 每日</div>
+                            <div class="fw-bold">{{ setting.rate_limit_daily|default:200 }} 次</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small text-muted">最近更新</div>
+                            <div class="small">{{ setting.updated_at|default:'—' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ============ 供应商管理 ============ #}
+            <div class="card mb-3">
+                <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>① 供应商管理（可同时开通多家，各自独立 Key）</span>
+                    <span class="small text-muted fw-normal">用户在聊天页可随时切换到任意已开通供应商下的模型</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:14%">供应商</th>
+                                    <th style="width:22%">API Key</th>
+                                    <th style="width:22%">Base URL</th>
+                                    <th style="width:10%">模型</th>
+                                    <th style="width:12%">状态</th>
+                                    <th style="width:20%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                {% with preset=providers|get:row.key %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ row.name }}</div>
+                                        {% if row.is_default %}<span class="badge bg-primary">默认</span>{% endif %}
+                                        <div class="small text-muted">{{ preset.price|default:'' }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="font-monospace small">
+                                            {% if row.masked_api_key %}
+                                            <code>{{ row.masked_api_key }}</code>
+                                            {% else %}
+                                            <span class="text-danger">未填写</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if preset.docs %}
+                                        <a href="{{ preset.docs }}" target="_blank" class="small">获取 Key →</a>
+                                        {% endif %}
+                                    </td>
+                                    <td class="font-monospace small text-break">{% if row.base_url %}{{ row.base_url }}{% else %}—{% endif %}</td>
+                                    <td>
+                                        <div>{{ row.models.count }} 个（{{ row.enabled_models_qs|length }} 开放）</div>
+                                    </td>
+                                    <td>
+                                        {% if row.is_usable %}
+                                        <span class="badge bg-success">已开通</span>
+                                        {% elif row.enabled %}
+                                        <span class="badge bg-warning text-dark">缺 Key</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">已停用</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {# Key / Base URL：Key 留空表示保持原值 #}
+                                        <form method="POST" action="{% url 'ai.providers.save' provider=row.key %}" class="mb-2">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="enabled" value="{% if row.enabled %}1{% else %}0{% endif %}">
+                                            <div class="input-group input-group-sm mb-1">
+                                                <input type="password" name="api_key" class="form-control font-monospace"
+                                                       placeholder="{% if row.masked_api_key %}留空保持不变{% else %}粘贴 API Key{% endif %}" autocomplete="new-password">
+                                                <button class="btn btn-outline-primary" title="保存 Key">保存 Key</button>
+                                            </div>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" name="base_url" class="form-control font-monospace"
+                                                       value="{{ row.base_url|default:'' }}" placeholder="接口地址 Base URL">
+                                                <button class="btn btn-outline-primary" title="保存地址">保存地址</button>
+                                            </div>
+                                        </form>
+
+                                        <div class="d-flex gap-1 flex-wrap align-items-center">
+                                            {# 启用开关独立成表单一套，避免嵌套 form #}
+                                            <form method="POST" action="{% url 'ai.providers.toggle' provider=row.key %}" class="mb-0">
+                                                {% csrf_token %}
+                                                <div class="form-check form-switch mb-0">
+                                                    <input class="form-check-input" type="checkbox" id="en-{{ row.id }}"
+                                                           onchange="this.form.submit()" {% if row.enabled %}checked{% endif %}>
+                                                    <label class="form-check-label small" for="en-{{ row.id }}">启用</label>
+                                                </div>
+                                            </form>
+
+                                            {% if not row.is_default %}
+                                            <form method="POST" action="{% url 'ai.providers.default' provider=row.key %}" class="mb-0">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-secondary">设默认</button>
+                                            </form>
+                                            {% endif %}
+                                            <form method="POST" action="{% url 'ai.providers.test' provider=row.key %}" class="mb-0">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-info">测试连接</button>
+                                            </form>
+                                            <form method="POST" action="{% url 'ai.providers.sync' provider=row.key %}" class="mb-0">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-secondary">补模型</button>
+                                            </form>
+                                            {% if row.has_real_api_key %}
+                                            <form method="POST" action="{% url 'ai.providers.remove' provider=row.key %}" class="mb-0"
+                                                  onsubmit="return confirm('清除 {{ row.name }} 的密钥并停用？');">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-danger">清 Key</button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-white small text-muted">
+                        提示：每家供应商的 Key 只保存在服务器数据库中，前端始终脱敏显示；切换供应商不会影响历史会话记录。
+                    </div>
+                </div>
+            </div>
+
+            {# ============ 模型管理 ============ #}
+            <div class="card mb-3">
+                <div class="card-header bg-white fw-bold">② 模型管理（勾选「开放」后用户在聊天页可见并随时切换）</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:16%">供应商</th>
+                                    <th style="width:18%">模型标识</th>
+                                    <th style="width:24%">展示名称</th>
+                                    <th style="width:10%">看图</th>
+                                    <th style="width:12%">状态</th>
+                                    <th style="width:20%">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in models %}
+                                <tr>
+                                    <td class="small">{% if m.provider %}{{ m.provider.name }}{% else %}—{% endif %}</td>
+                                    <td class="font-monospace small">{{ m.model_id }}</td>
+                                    <td>
+                                        <span class="small">{{ m.name }}</span>
+                                        {% if m.is_default %}<span class="badge bg-primary ms-1">默认</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if m.is_vision %}<span class="badge bg-info">支持</span>{% else %}<span class="text-muted small">—</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if m.is_usable %}
+                                        <span class="badge bg-success">用户可选</span>
+                                        {% elif m.enabled %}
+                                        <span class="badge bg-warning text-dark">供应商未开通</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">未开放</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{% url 'ai.models.default' pk=m.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button class="btn btn-sm btn-outline-primary" {% if not m.is_usable %}disabled{% endif %}>设默认</button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#medit-{{ m.id }}">编辑</button>
+                                        <form method="POST" action="{% url 'ai.models.destroy' pk=m.id %}" class="d-inline"
+                                              onsubmit="return confirm('删除模型「{{ m.name }}」？使用该模型的会话会回退到默认模型。');">
+                                            {% csrf_token %}
+                                            <button class="btn btn-sm btn-outline-danger">删除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <tr class="collapse" id="medit-{{ m.id }}">
+                                    <td colspan="6" class="bg-light">
+                                        <form method="POST" action="{% url 'ai.models.update' pk=m.id %}" class="row g-2 align-items-end">
+                                            {% csrf_token %}
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-0">展示名称</label>
+                                                <input type="text" name="name" class="form-control form-control-sm" value="{{ m.name|default:'' }}">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-0">模型标识（调用用）</label>
+                                                <input type="text" name="model_id" class="form-control form-control-sm font-monospace" value="{{ m.model_id }}">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-check mb-1">
+                                                    <input class="form-check-input" type="checkbox" name="enabled" value="1" id="men-{{ m.id }}" {% if m.enabled %}checked{% endif %}>
+                                                    <label class="form-check-label small" for="men-{{ m.id }}">开放给用户选择</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="is_vision" value="1" id="mvs-{{ m.id }}" {% if m.is_vision %}checked{% endif %}>
+                                                    <label class="form-check-label small" for="mvs-{{ m.id }}">支持看图（图片理解）</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <button class="btn btn-sm btn-primary">保存修改</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-center text-muted py-3">暂无模型，请在上方「补模型」或下方新增自定义模型</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {# ============ 新增自定义模型 ============ #}
+            <div class="card mb-3">
+                <div class="card-header bg-white fw-bold">③ 新增自定义模型（厂家新发布的模型可手工添加）</div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'ai.models.store' %}" class="row g-3 align-items-end">
+                        {% csrf_token %}
+                        <div class="col-md-3">
+                            <label class="form-label small mb-0">所属供应商</label>
+                            <select name="provider_id" class="form-select form-select-sm" required>
+                                {% for row in rows %}
+                                <option value="{{ row.id }}">{{ row.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-0">模型标识（如 deepseek-chat）</label>
+                            <input type="text" name="model_id" class="form-control form-control-sm font-monospace" required placeholder="model-name">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-0">展示名称</label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="留空则同模型标识">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="enabled" value="1" id="newm-en" checked>
+                                <label class="form-check-label small" for="newm-en">开放给用户</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_vision" value="1" id="newm-vs">
+                                <label class="form-check-label small" for="newm-vs">支持看图</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-sm btn-primary">新增模型</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {# ============ 全局参数 ============ #}
+            <div class="card">
+                <div class="card-header bg-white fw-bold">④ 生成参数与限流（对所有供应商 / 模型生效）</div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'ai.settings.update' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="provider" value="{{ setting.provider }}">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">温度（Temperature）</label>
+                                <input type="number" step="0.1" min="0" max="2" name="temperature" class="form-control" value="{{ setting.temperature }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">最大 Token</label>
+                                <input type="number" min="100" max="8000" name="max_tokens" class="form-control" value="{{ setting.max_tokens }}">
+                            </div>
+                            <div class="col-md-4"></div>
+                            <div class="col-md-6">
+                                <label class="form-label">每用户限流 · 每分钟（次）</label>
+                                <input type="number" min="1" max="1000" name="rate_limit_minute" class="form-control" value="{{ setting.rate_limit_minute|default:30 }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">每用户限流 · 每日（次）</label>
+                                <input type="number" min="1" max="100000" name="rate_limit_daily" class="form-control" value="{{ setting.rate_limit_daily|default:200 }}">
+                                <div class="form-text">限流对所有非管理员用户生效</div>
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="enabled" id="enabled" value="1" {% if setting.enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="enabled">启用 AI 功能（关闭后所有用户不可用，并显示「管理员尚未开通」）</label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary">保存设置</button>
+                            <a href="{% url 'ai.settings.test' %}" class="btn btn-outline-secondary">测试默认模型连接</a>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+                    <h6 class="fw-bold mb-2">使用说明</h6>
+                    <ul class="small text-muted mb-0">
+                        <li>可同时开通 DeepSeek、通义千问、豆包、混元等多家供应商，各自填写 Key，互不干扰。</li>
+                        <li>用户在聊天页右上角「模型」下拉框中可随时切换本次会话使用的模型；切换后立即生效，无需重建会话。</li>
+                        <li>只有勾选「开放给用户选择」且所属供应商已开通的模型才会出现在用户侧列表中。</li>
+                        <li>若所选模型不支持看图，上传图片时会自动回退到同供应商下支持视觉的模型（没有则提示无法读图）。</li>
+                    </ul>
+
+                    <hr class="my-4">
+                    <h6 class="fw-bold mb-2">AI 数据 API</h6>
+                    <div class="small text-muted mb-2">
+                        供 AI / 外部 Agent 调取 PM 数据（项目、任务、用户、知识库等）的 REST 接口：
+                        <code>/api/ai/meta</code>（能力清单）、<code>/api/ai/overview</code>、<code>/api/ai/projects</code>、<code>/api/ai/tasks</code> 等。
+                    </div>
+                    <div class="small text-muted">
+                        调用认证：请求头 <code>X-AI-Key</code> 或参数 <code>api_key</code>，密钥为 <code>.env</code> 中的 <code>AI_API_KEY</code>。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

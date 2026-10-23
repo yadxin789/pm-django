@@ -1,0 +1,104 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}我的项目列表{% endblock %}
+{% block content %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<h1 class="mb-4">我的项目列表</h1>
+
+{% comment %}
+标签页配置（对齐 Laravel my-projects.blade.php $projectTabs）
+- 顺序：in_progress → overdue → not_started → completed → overdue_completed → suspended
+- 默认 active：in_progress（第 1 个）
+- 6 个 tab：图标、badgeClass、headerClass、progressColor、dateLabel、emptyText
+{% endcomment %}
+
+{# ---------- 1. 顶部 6 个 tab 按钮（按 tab_order 顺序） ---------- #}
+{# key（view 传入，下划线）→ pane_key（DOM 用的连字符） #}
+<ul class="nav nav-tabs mb-3" id="myProjectTabs" role="tablist">
+  {% for key in tab_order %}
+  {% with pane_key=key|pane_key %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if forloop.first %}active{% endif %}"
+            id="{{ pane_key }}-projects-tab"
+            data-bs-toggle="tab" data-bs-target="#{{ pane_key }}-projects"
+            type="button" role="tab"
+            aria-controls="{{ pane_key }}-projects"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+      {% if key == 'overdue' %}<i class="fa fa-exclamation-triangle me-1"></i>逾期项目列表
+      {% elif key == 'in_progress' %}<i class="fa fa-spinner me-1"></i>进行中项目列表
+      {% elif key == 'completed' %}<i class="fa fa-check-circle me-1"></i>已完成项目列表
+      {% elif key == 'suspended' %}<i class="fa fa-pause-circle me-1"></i>暂停项目列表
+      {% elif key == 'not_started' %}<i class="fa fa-flag-o me-1"></i>未开始项目列表
+      {% else %}<i class="fa fa-calendar-check-o me-1"></i>逾期完成项目列表{% endif %}
+      <span class="badge {% if key == 'overdue' %}bg-danger{% elif key == 'in_progress' %}bg-warning text-dark{% elif key == 'completed' %}bg-success{% elif key == 'suspended' %}bg-secondary{% elif key == 'not_started' %}bg-primary{% else %}bg-info text-dark{% endif %} ms-1">
+        {% if key == 'overdue' %}{{ overdue_projects|length }}
+        {% elif key == 'in_progress' %}{{ in_progress_projects|length }}
+        {% elif key == 'not_started' %}{{ not_started_projects|length }}
+        {% elif key == 'completed' %}{{ completed_projects|length }}
+        {% elif key == 'overdue_completed' %}{{ overdue_completed_projects|length }}
+        {% else %}{{ suspended_projects|length }}{% endif %}
+      </span>
+    </button>
+  </li>
+  {% endwith %}
+  {% endfor %}
+</ul>
+
+{# ---------- 2. tab 内容区（与 tab 按钮共用 tab_order，确保 active 状态一致） ---------- #}
+<div class="tab-content" id="myProjectTabsContent">
+  {% for key in tab_order %}
+    {% if key == 'in_progress' %}
+      {% include "project/partials/my-projects-tab-pane.html" with title='进行中项目列表' icon='fa-spinner' header_class='bg-warning' progress_color='#0d6efd' date_label='截止日期' empty_text='暂无进行中项目' projects=in_progress_projects pane_id='in-progress-projects' active=forloop.first %}
+    {% elif key == 'overdue' %}
+      {% include "project/partials/my-projects-tab-pane.html" with title='逾期项目列表' icon='fa-exclamation-triangle' header_class='bg-danger' progress_color='#dc3545' date_label='截止日期' empty_text='暂无逾期项目' projects=overdue_projects pane_id='overdue-projects' active=forloop.first %}
+    {% elif key == 'not_started' %}
+      {% include "project/partials/my-projects-tab-pane.html" with title='未开始项目列表' icon='fa-flag-o' header_class='bg-primary' progress_color='#6c757d' date_label='截止日期' empty_text='暂无未开始项目' projects=not_started_projects pane_id='not-started-projects' active=forloop.first %}
+    {% elif key == 'completed' %}
+      {% include "project/partials/my-projects-tab-pane.html" with title='已完成项目列表' icon='fa-check-circle' header_class='bg-success' progress_color='#198754' date_label='完成日期' empty_text='暂无已完成项目' projects=completed_projects pane_id='completed-projects' active=forloop.first %}
+    {% elif key == 'overdue_completed' %}
+      {% include "project/partials/my-projects-tab-pane.html" with title='逾期完成项目列表' icon='fa-calendar-check-o' header_class='bg-info' progress_color='#0dcaf0' date_label='完成日期' empty_text='暂无逾期完成项目' projects=overdue_completed_projects pane_id='overdue-completed-projects' active=forloop.first %}
+    {% elif key == 'suspended' %}
+      {% include "project/partials/my-projects-tab-pane.html" with title='暂停项目列表' icon='fa-pause-circle' header_class='bg-secondary' progress_color='#6c757d' date_label='暂停日期' empty_text='暂无暂停项目' projects=suspended_projects pane_id='suspended-projects' active=forloop.first %}
+    {% endif %}
+  {% endfor %}
+</div>
+
+{# Fallback：确保 tab 切换始终只显示一个内容区（兼容 Bootstrap 5 及可能的缓存/JS 冲突场景） #}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var tabTriggerList = [].slice.call(document.querySelectorAll('#myProjectTabs [data-bs-toggle="tab"]'));
+  tabTriggerList.forEach(function (tabEl) {
+    tabEl.addEventListener('click', function (e) {
+      e.preventDefault();
+      var targetSelector = tabEl.getAttribute('data-bs-target');
+      if (!targetSelector) return;
+
+      // 1) 按钮状态：只保留当前 active
+      tabTriggerList.forEach(function (t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tabEl.classList.add('active');
+      tabEl.setAttribute('aria-selected', 'true');
+
+      // 2) 内容状态：只显示目标 pane
+      document.querySelectorAll('#myProjectTabsContent .tab-pane').forEach(function (pane) {
+        pane.classList.remove('show', 'active');
+      });
+      var targetPane = document.querySelector(targetSelector);
+      if (targetPane) {
+        targetPane.style.display = '';
+        targetPane.classList.add('show', 'active');
+      } else {
+        // 旧缓存 HTML 缺少目标 pane，自动刷新获取最新页面
+        if (!window.__myProjectTabsReloading) {
+          window.__myProjectTabsReloading = true;
+          window.location.reload(true);
+        }
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

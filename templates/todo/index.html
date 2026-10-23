@@ -1,0 +1,128 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}待办事项{% endblock %}
+{% block content %}
+<h1 class="mb-4">待办事项</h1>
+
+<div class="card mb-4">
+    <div class="card-header">任务相关</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>项目名称</th><th>任务类型</th><th>起始日期</th><th>截止日期</th><th>事项状态</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in todo_tasks %}
+                    <tr>
+                        <td><a href="{% url 'project.show' item.project.id %}">{{ item.project.name }}</a></td>
+                        <td>{% if item.task_type %}{{ item.task_type.name }}{% else %}未知{% endif %}</td>
+                        <td>{{ item.task.start_date|date:'Y-m-d' }}</td>
+                        <td>{{ item.task.end_date|date:'Y-m-d' }}</td>
+                        <td><span class="badge {{ item.status_class }} text-white">{{ item.status }}</span></td>
+                        <td>
+                            {% if item.todo_type == 'task' %}
+                            <div class="btn-group" role="group">
+                                {% can_upload_file item.task request.user.id as can_up %}{% can_apply_extension item.task request.user.id as can_ext %}
+                                {% if can_up %}<a href="{% url 'task.upload' item.task.id %}" class="btn btn-primary btn-sm">上传文件</a>{% endif %}
+                                {% if can_ext %}<a href="{% url 'task.apply-extension' item.task.id %}" class="btn btn-warning btn-sm">申请延期</a>{% endif %}
+                                {% if not can_up and not can_ext and item.project.is_inactive %}<span class="text-muted small">项目已暂停</span>{% endif %}
+                            </div>
+                            {% elif item.todo_type == 'audit' %}
+                            {% with file=item.task.pending_file %}
+                            {% if file %}
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'file.preview' file.id %}" class="btn btn-info btn-sm" target="_blank">预览</a>
+                                <a href="{% url 'file.download' file.id %}" class="btn btn-success btn-sm">下载</a>
+                                {% if not item.project.is_inactive %}
+                                <form action="{% url 'task.approve' item.task.id %}" method="POST" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('确定通过审核？')">通过</button>
+                                </form>
+                                <form action="{% url 'task.reject' item.task.id %}" method="POST" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定驳回？')">驳回</button>
+                                </form>
+                                {% else %}<span class="text-muted small">项目已暂停</span>{% endif %}
+                            </div>
+                            {% else %}<span class="text-muted">无文件</span>{% endif %}
+                            {% endwith %}
+                            {% else %}<span class="text-muted">-</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not todo_tasks %}<p class="text-center text-muted mt-4">暂无任务相关待办事项</p>{% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">延期申请审批</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>项目名称</th><th>任务名称</th><th>申请人</th><th>申请天数</th><th>申请理由</th><th>申请时间</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in extension_todos %}
+                    <tr>
+                        <td>{% if item.project %}<a href="{% url 'project.show' item.project.id %}">{{ item.project.name }}</a>{% endif %}</td>
+                        <td>{% if item.task %}<a href="{% url 'task.show' item.task.id %}">{{ item.task.name }}</a>{% endif %}</td>
+                        <td>{{ item.application.applicant.name }}</td>
+                        <td>{{ item.application.days }}天</td>
+                        <td>{{ item.application.reason }}</td>
+                        <td>{{ item.application.created_at|date:'Y-m-d H:i' }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                {% if not item.project.is_inactive %}
+                                <form action="{% url 'todo.extension.approve' item.application.id %}" method="POST" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('确定批准延期申请？')">批准</button>
+                                </form>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal-{{ item.application.id }}">驳回</button>
+                                {% else %}<span class="text-muted small">项目已暂停</span>{% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not extension_todos %}<p class="text-center text-muted mt-4">暂无延期申请待审批</p>{% endif %}
+    </div>
+</div>
+
+{% for item in extension_todos %}
+<div class="modal fade" id="rejectModal-{{ item.application.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">驳回延期申请</h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <form action="{% url 'todo.extension.reject' item.application.id %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="reason-{{ item.application.id }}">驳回理由</label>
+                        <textarea class="form-control" id="reason-{{ item.application.id }}" name="reason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger">确认驳回</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="d-flex justify-content-center mt-3">
+    {% if todos.has_previous %}<a class="btn btn-sm btn-outline-secondary me-1" href="?page={{ todos.previous_page_number }}">上一页</a>{% endif %}
+    <span class="align-self-center mx-2">第 {{ todos.number }} / {{ todos.paginator.num_pages }} 页</span>
+    {% if todos.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?page={{ todos.next_page_number }}">下一页</a>{% endif %}
+</div>
+{% endblock %}

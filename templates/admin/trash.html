@@ -1,0 +1,271 @@
+{% extends "layouts/app.html" %}
+{% load static %}{% load pm_tags %}
+
+{% block title %}回收站{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="fa fa-trash me-2"></i>回收站</h1>
+        <div>
+            <a href="{% url 'admin.users.deleted' %}" class="btn btn-outline-secondary me-2">
+                <i class="fa fa-user-times me-1"></i>已删除用户（{{ counts|get:'users'|default:0 }}）
+            </a>
+            <a href="{% url 'admin.index' %}" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i>返回后台首页
+            </a>
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        <i class="fa fa-exclamation-triangle me-1"></i>
+        <strong>仅管理员可访问。</strong>此处列出全系统被软删除的内容；「恢复」会把内容还原，「彻底删除」不可撤销，并会一并清理磁盘上的物理文件。
+        <br>
+        <i class="fa fa-info-circle me-1"></i>
+        回收站内容仅保留 <strong>{{ pm_trash_retention_days|default:15 }} 天</strong>，逾期由系统每日自动彻底删除（含物理文件），如需长期留存请提前恢复。
+    </div>
+
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert {% if m.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">{{ m }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <ul class="nav nav-tabs mb-3">
+        {% for key, meta in types.items %}
+            <li class="nav-item">
+                <a class="nav-link {% if type == key %}active{% endif %}"
+                   href="{% url 'admin.trash' %}?type={{ key }}">
+                    <i class="fa {{ meta.icon }} me-1"></i>{{ meta.label }}
+                    <span class="badge {% if counts|get:key %}bg-danger{% else %}bg-secondary{% endif %}">{{ counts|get:key|default:0 }}</span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fa {{ types|get:type|get:'icon' }} me-2"></i>{{ types|get:type|get:'label' }}
+                <span class="text-muted small ms-2">共 {{ items.paginator.count }} 条</span>
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">已选 <strong id="batchCount">0</strong> 条</span>
+                <button type="button" class="btn btn-sm btn-success" id="batchRestoreBtn" disabled>
+                    <i class="fa fa-undo me-1"></i>批量恢复
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" id="batchForceDeleteBtn" disabled
+                        data-bs-toggle="modal" data-bs-target="#batchForceDeleteModal">
+                    <i class="fa fa-trash me-1"></i>批量彻底删除
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:44px;" class="text-center">
+                                <input type="checkbox" class="form-check-input" id="trashCheckAll"
+                                       title="全选本页" aria-label="全选本页">
+                            </th>
+                            <th style="width:80px;">ID</th>
+                            <th>名称</th>
+                            <th style="width:190px;">删除时间</th>
+                            <th style="width:220px;" class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input trash-row-check"
+                                       name="ids[]" value="{{ row.id }}" form="batchForm"
+                                       aria-label="选择 #{{ row.id }}">
+                            </td>
+                            <td class="text-muted">#{{ row.id }}</td>
+                            <td>{{ row.name }}</td>
+                            <td class="text-muted">{{ row.deleted_at|date:'Y-m-d H:i:s'|default:'-' }}</td>
+                            <td class="text-end">
+                                <form action="{% url 'admin.trash.restore' type row.id %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fa fa-undo me-1"></i>恢复
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        data-bs-toggle="modal" data-bs-target="#forceDeleteModal"
+                                        data-name="{{ row.name }}"
+                                        data-url="{% url 'admin.trash.force-delete' type row.id %}">
+                                    <i class="fa fa-trash me-1"></i>彻底删除
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                回收站中暂无{{ types|get:type|get:'label' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if items.has_other_pages %}
+        <div class="card-footer">
+            {% include "layouts/_pagination.html" with page_obj=items %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="modal fade" id="forceDeleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fa fa-exclamation-triangle me-1"></i>危险操作：彻底删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <p>即将彻底删除：<strong class="text-danger" id="fdName"></strong></p>
+                    <p class="text-danger mb-3">
+                        此操作<strong>不可恢复</strong>，数据库记录与磁盘上的物理文件都会被一并删除。
+                    </p>
+                    <label class="form-label">请输入上面的名称以确认：</label>
+                    <input type="text" id="fdInput" class="form-control" autocomplete="off" placeholder="输入名称后确认按钮才会启用">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="fdConfirm" disabled>确认彻底删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form id="fdForm" method="POST" class="d-none">
+        {% csrf_token %}
+    </form>
+
+    <form id="batchForm" method="POST" class="d-none">
+        {% csrf_token %}
+    </form>
+
+    <div class="modal fade" id="batchForceDeleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fa fa-exclamation-triangle me-1"></i>危险操作：批量彻底删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <p>即将彻底删除 <strong class="text-danger" id="bfdCount">0</strong> 条{{ types|get:type|get:'label' }}。</p>
+                    <p class="text-danger mb-3">
+                        此操作<strong>不可恢复</strong>，数据库记录与磁盘上的物理文件都会被一并删除。
+                    </p>
+                    <label class="form-label">请输入 <code>彻底删除</code> 以确认：</label>
+                    <input type="text" id="bfdInput" class="form-control" autocomplete="off"
+                           placeholder="输入确认词后按钮才会启用">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="bfdConfirm" disabled>确认彻底删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var modal = document.getElementById('forceDeleteModal');
+    if (!modal) return;
+    var form = document.getElementById('fdForm');
+    var input = document.getElementById('fdInput');
+    var confirmBtn = document.getElementById('fdConfirm');
+    var expected = '';
+    modal.addEventListener('show.bs.modal', function (event) {
+        var trigger = event.relatedTarget;
+        if (!trigger) return;
+        expected = trigger.getAttribute('data-name') || '';
+        document.getElementById('fdName').textContent = expected;
+        form.setAttribute('action', trigger.getAttribute('data-url') || '');
+        input.value = '';
+        confirmBtn.disabled = true;
+    });
+    input.addEventListener('input', function () {
+        confirmBtn.disabled = input.value.trim() !== expected;
+    });
+    confirmBtn.addEventListener('click', function () {
+        if (input.value.trim() === expected) form.submit();
+    });
+})();
+
+(function () {
+    var checks = Array.prototype.slice.call(document.querySelectorAll('.trash-row-check'));
+    var checkAll = document.getElementById('trashCheckAll');
+    var restoreBtn = document.getElementById('batchRestoreBtn');
+    var forceBtn = document.getElementById('batchForceDeleteBtn');
+    var counter = document.getElementById('batchCount');
+    var form = document.getElementById('batchForm');
+    if (!form) return;
+
+    var restoreUrl = '{% url "admin.trash.restore-batch" type %}';
+    var forceUrl = '{% url "admin.trash.force-delete-batch" type %}';
+
+    function picked() {
+        return checks.filter(function (c) { return c.checked; });
+    }
+    function refresh() {
+        var n = picked().length;
+        if (counter) counter.textContent = n;
+        if (restoreBtn) restoreBtn.disabled = n === 0;
+        if (forceBtn) forceBtn.disabled = n === 0;
+        if (checkAll) {
+            checkAll.checked = n > 0 && n === checks.length;
+            checkAll.indeterminate = n > 0 && n < checks.length;
+        }
+    }
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            checks.forEach(function (c) { c.checked = checkAll.checked; });
+            refresh();
+        });
+    }
+    checks.forEach(function (c) { c.addEventListener('change', refresh); });
+    refresh();
+
+    if (restoreBtn) {
+        restoreBtn.addEventListener('click', function () {
+            if (picked().length === 0) return;
+            form.setAttribute('action', restoreUrl);
+            form.submit();
+        });
+    }
+    var bfdModal = document.getElementById('batchForceDeleteModal');
+    var bfdInput = document.getElementById('bfdInput');
+    var bfdConfirm = document.getElementById('bfdConfirm');
+    var bfdCount = document.getElementById('bfdCount');
+    if (bfdModal) {
+        bfdModal.addEventListener('show.bs.modal', function () {
+            if (bfdCount) bfdCount.textContent = picked().length;
+            bfdInput.value = '';
+            bfdConfirm.disabled = true;
+        });
+    }
+    if (bfdInput) {
+        bfdInput.addEventListener('input', function () {
+            bfdConfirm.disabled = bfdInput.value.trim() !== '彻底删除';
+        });
+    }
+    if (bfdConfirm) {
+        bfdConfirm.addEventListener('click', function () {
+            if (bfdInput.value.trim() !== '彻底删除' || picked().length === 0) return;
+            form.setAttribute('action', forceUrl);
+            form.submit();
+        });
+    }
+})();
+</script>
+{% endblock %}

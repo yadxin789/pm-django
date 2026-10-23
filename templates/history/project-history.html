@@ -1,0 +1,68 @@
+{% extends 'layouts/app.html' %}
+{% block title %}项目履历{% endblock %}
+{% block content %}
+{% include 'project/partials/project-tabs.html' with project=project active_tab='history' %}
+<div class="row mt-1">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="mb-1"><i class="fa fa-history me-2 text-primary"></i>项目履历</h3>
+                    <p class="text-muted mb-0">项目代码：{{ project.code }}</p>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if logs.object_list|length == 0 %}
+                <div class="alert alert-info text-center"><i class="fa fa-info-circle me-2"></i>暂无履历记录</div>
+                {% else %}
+                <div class="timeline">
+                    {% for log in logs %}
+                    <div class="timeline-item">
+                        <div class="timeline-badge bg-primary"><i class="fa fa-history"></i></div>
+                        <div class="timeline-panel">
+                            <div class="timeline-heading">
+                                <h5 class="timeline-title">{{ log.action }}</h5>
+                                <p class="mb-0">
+                                    <small class="text-muted">
+                                        <i class="fa fa-clock-o"></i> {{ log.created_at|date:'Y-m-d H:i:s' }}
+                                        <span class="mx-2">|</span>
+                                        <i class="fa fa-user"></i> {% if log.user %}{{ log.user.name }}{% else %}未知{% endif %}
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="timeline-body">
+                                {% if log.content %}
+                                <div class="alert alert-light border">
+                                    <strong><i class="fa fa-file-text-o me-1"></i>操作内容：</strong>{{ log.content }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-4">
+                    <div class="d-flex justify-content-center">
+                        {% if logs.has_previous %}<a class="btn btn-sm btn-outline-secondary me-1" href="?page={{ logs.previous_page_number }}">上一页</a>{% endif %}
+                        <span class="align-self-center mx-2">第 {{ logs.number }} / {{ logs.paginator.num_pages }} 页</span>
+                        {% if logs.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?page={{ logs.next_page_number }}">下一页</a>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .timeline { position: relative; padding-left: 2rem; border-left: 3px solid #dee2e6; }
+    .timeline-item { position: relative; margin-bottom: 2rem; }
+    .timeline-badge { position: absolute; left: -2.8rem; width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .timeline-panel { background: #f8f9fa; border-radius: 0.5rem; padding: 1.2rem; border: 1px solid #dee2e6; transition: all 0.3s ease; }
+    .timeline-panel:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateX(5px); }
+    .timeline-heading { margin-bottom: 0.8rem; border-bottom: 2px solid #dee2e6; padding-bottom: 0.5rem; }
+    .timeline-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; color: #333; }
+</style>
+{% endblock %}

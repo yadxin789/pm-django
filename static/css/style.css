@@ -1,0 +1,283 @@
+/* 产品研发设计文件收集管理系统 - 样式文件 */
+
+:root {
+    --primary-color: #4a90d9;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* 卡片样式 */
+.card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+/* 导航栏样式 */
+.navbar-brand {
+    font-weight: bold;
+}
+
+/* 表格样式 */
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.table th,
+.table td {
+    vertical-align: middle !important;
+    padding: 12px 8px !important;
+}
+
+/* 斑马条纹效果 */
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.table-striped tbody tr:nth-of-type(even) {
+    background-color: #ffffff;
+}
+
+/* 徽章样式 */
+.badge {
+    font-weight: normal;
+    padding: 6px 12px !important;
+    font-size: 0.9em !important;
+}
+
+/* 进度条样式 */
+.progress {
+    border-radius: 10px;
+}
+
+.progress-bar {
+    font-size: 12px;
+}
+
+/* 表单样式 */
+.form-label {
+    font-weight: 500;
+}
+
+/* 按钮样式 */
+.btn {
+    border-radius: 4px;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+/* 通知徽章动画 */
+.badge.bg-danger {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* 表格行悬停效果 */
+.table-hover tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* 逾期任务高亮 */
+.table-danger {
+    background-color: #fff5f5 !important;
+}
+
+/* 模态框优化 */
+.modal-header {
+    background-color: #f8f9fa;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+}
+
+/* 任务状态颜色 */
+.status-pending { color: #6c757d; }
+.status-in_progress { color: #17a2b8; }
+.status-completed { color: #28a745; }
+.status-overdue { color: #dc3545; }
+
+/* 甘特图样式 */
+.gantt-table {
+    font-size: 11px;
+}
+
+.gantt-table th {
+    padding: 4px !important;
+}
+
+.gantt-table td {
+    padding: 2px !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 12px;
+    }
+}
+
+/* 下拉菜单样式 */
+.dropdown-item {
+    padding: 8px 16px;
+}
+
+.dropdown-item i {
+    width: 20px;
+}
+
+/* 警告框样式 */
+.alert {
+    border-radius: 6px;
+}
+
+/* 加载动画 */
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* 页面标题 */
+h2 {
+    color: #333;
+    font-weight: 600;
+}
+
+h2 i {
+    color: var(--primary-color);
+    margin-right: 8px;
+}
+
+/* 快捷操作卡片 */
+.card a.btn {
+    transition: all 0.3s;
+}
+
+.card a.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 统计卡片 */
+.card.bg-primary, .card.bg-success, .card.bg-info, .card.bg-warning, .card.bg-danger {
+    border-radius: 8px;
+}
+
+.card.bg-primary .card-body,
+.card.bg-success .card-body,
+.card.bg-info .card-body,
+.card.bg-warning .card-body,
+.card.bg-danger .card-body {
+    padding: 20px;
+}
+
+/* 通知项样式 */
+.notification-item {
+    transition: background-color 0.2s;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* 进度百分比标签 */
+.progress-wrapper {
+    position: relative;
+}
+
+.progress-label {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #fff;
+}
+
+/* 分页样式修复 - Bootstrap 5 兼容 */
+.pagination {
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+    border-radius: 4px;
+}
+
+.pagination .page-item {
+    margin: 0 2px;
+}
+
+.pagination .page-link {
+    position: relative;
+    display: block;
+    padding: 6px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #007bff;
+    text-decoration: none;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.pagination .page-link:hover {
+    z-index: 2;
+    color: #0056b3;
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    z-index: 3;
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    cursor: auto;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+.pagination .page-item:first-child .page-link {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.pagination .page-item:last-child .page-link {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}

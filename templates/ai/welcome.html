@@ -1,0 +1,98 @@
+{% extends 'layouts/app.html' %}
+{% block title %}AI 开通引导{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="text-center mb-4">
+                <h1 class="fw-bold"><i class="fa fa-robot me-2 text-primary"></i>欢迎使用 AI 智能助手</h1>
+                <p class="text-muted">只需 3 步，即可启用「项目/任务智能问答、PM 数据洞察、自然语言生成文档」等 AI 能力</p>
+            </div>
+
+            <div class="d-flex justify-content-center mb-4">
+                <div class="d-flex align-items-center gap-3 text-sm">
+                    <span class="d-flex align-items-center gap-2"><span class="badge rounded-pill bg-primary" style="width:26px;height:26px;line-height:20px;">1</span> 选择提供商</span>
+                    <span class="text-muted">→</span>
+                    <span class="d-flex align-items-center gap-2"><span class="badge rounded-pill bg-secondary text-white" style="width:26px;height:26px;line-height:20px;">2</span> 获取 API Key</span>
+                    <span class="text-muted">→</span>
+                    <span class="d-flex align-items-center gap-2"><span class="badge rounded-pill bg-secondary text-white" style="width:26px;height:26px;line-height:20px;">3</span> 粘贴并测试</span>
+                </div>
+            </div>
+
+            <h2 class="h5 fw-bold mb-3">第 1 步：选择 AI 提供商</h2>
+            <div class="row g-3 mb-4">
+                {% for key, p in providers.items %}
+                <div class="col-md-6">
+                    <div class="border rounded p-3 h-100 {% if current.provider == key %}border-primary bg-light{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h5 class="mb-0 fw-bold">{{ p.name }}</h5>
+                            {% if key == 'deepseek' %}
+                            <span class="badge bg-warning text-dark">⭐ 推荐</span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted mb-1">{{ p.price }}</div>
+                        <div class="small text-success mb-2">🎁 {{ p.free_quota }}</div>
+                        <div class="small text-muted mb-3">💡 {{ p.best_for }}</div>
+                        <a href="{{ p.docs }}" target="_blank" class="small text-primary">
+                            前往注册并获取 Key →
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h2 class="h5 fw-bold mb-3">第 2-3 步：粘贴 API Key 并测试</h2>
+            <div class="card">
+                <div class="card-body">
+                    {% if current.enabled and current.has_real_api_key %}
+                    <div class="alert alert-success">
+                        ✅ AI 功能已开通并启用！当前供应商：{% if provider_info.name %}{{ provider_info.name }}{% else %}{{ current.provider }}{% endif %}（{{ current.model }}）
+                        {% if masked_key %}
+                        <div class="mt-2 small">当前 API Key：
+                            <code>{{ masked_key }}</code>
+                            <a href="{% url 'ai.settings' %}" class="ms-2">更换 Key / 调整限流 →</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'ai.settings' %}" class="btn btn-primary">进入 AI 设置 →</a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">返回首页</a>
+                    </div>
+                    {% else %}
+                    <form method="POST" action="{% url 'ai.settings.update' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">选择提供商</label>
+                            <select name="provider" class="form-select">
+                                {% for key, p in providers.items %}
+                                <option value="{{ key }}" {% if current.provider == key %}selected{% endif %}>{{ p.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <input type="password" name="api_key" required class="form-control font-monospace" placeholder="sk-xxxxxxxxxxxxxxxx">
+                            <div class="form-text">在上方第 1 步点击对应链接即可获取</div>
+                        </div>
+                        <input type="hidden" name="enabled" value="1">
+                        <input type="hidden" name="source" value="welcome">
+                        <button class="btn btn-primary">保存并开通 AI</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4 bg-light rounded p-3 small text-muted">
+                <h6 class="fw-bold mb-2">💡 使用提示</h6>
+                <ul class="mb-0">
+                    <li>所有 AI 调用直接发送到对应厂商，系统不存储你的对话内容（文档生成结果仅保存在本次会话）</li>
+                    <li>智能问答、文档生成等功能会消耗 API 额度</li>
+                    <li>可随时在 <a href="{% url 'ai.settings' %}" class="text-primary">AI 设置</a> 中更换提供商或调整模型</li>
+                    <li>新用户建议先用 DeepSeek，性价比最高且送 ¥10 额度</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

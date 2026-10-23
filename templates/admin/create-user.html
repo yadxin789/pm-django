@@ -1,0 +1,19 @@
+{% extends 'layouts/app.html' %}
+{% block title %}新建用户{% endblock %}
+{% block content %}
+<h1 class="mb-4">新建用户</h1>
+{% if messages %}{% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+<div class="card"><div class="card-body">
+<form method="POST" action="{% url 'admin.users.store' %}">{% csrf_token %}
+<table class="table table-bordered form-table mb-0">
+<tr><td class="form-table-label">用户名 <font color="red">*</font></td><td><input name="username" class="form-control" required maxlength="255"></td></tr>
+<tr><td class="form-table-label">初始密码 <font color="red">*</font></td><td><input type="password" name="password" class="form-control" required></td></tr>
+<tr><td class="form-table-label">姓名 <font color="red">*</font></td><td><input name="name" class="form-control" required></td></tr>
+<tr><td class="form-table-label">部门 <font color="red">*</font></td><td><select name="department_id" class="form-control" required>{% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}</select></td></tr>
+<tr><td class="form-table-label">角色 <font color="red">*</font></td><td><select name="role_id" class="form-control" required>{% for r in roles %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select></td></tr>
+</table>
+<div class="pt-3"><button class="btn btn-primary"><i class="fa fa-check"></i> 保存</button> <a href="{% url 'admin.users' %}" class="btn btn-outline-secondary">返回</a></div>
+</form>
+</div></div>
+<style>.form-table td{padding:12px 16px!important;vertical-align:middle}.form-table-label{width:130px;background-color:#f8f9fa!important;font-weight:600}</style>
+{% endblock %}

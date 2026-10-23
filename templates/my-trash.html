@@ -1,0 +1,101 @@
+{% extends "layouts/app.html" %}
+{% load static %}{% load pm_tags %}
+
+{% block title %}我的回收站{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="fa fa-trash me-2"></i>我的回收站</h1>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fa fa-arrow-left me-1"></i>返回首页
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fa fa-info-circle me-1"></i>
+        这里只显示<strong>您自己删除的</strong>或<strong>您创建的</strong>内容。恢复后内容会回到原来的位置。
+        被管理员彻底删除的内容不在此列。
+        <br>
+        <i class="fa fa-exclamation-triangle me-1"></i>
+        回收站内容仅保留 <strong>{{ pm_trash_retention_days|default:15 }} 天</strong>，逾期系统会自动彻底删除且无法恢复，请及时恢复需要保留的内容。
+    </div>
+
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert {% if m.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">{{ m }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <ul class="nav nav-tabs mb-3">
+        {% for key, meta in types.items %}
+            <li class="nav-item">
+                <a class="nav-link {% if type == key %}active{% endif %}"
+                   href="{% url 'my-trash' %}?type={{ key }}">
+                    <i class="fa {{ meta.icon }} me-1"></i>{{ meta.label }}
+                    <span class="badge {% if counts|get:key %}bg-danger{% else %}bg-secondary{% endif %}">{{ counts|get:key|default:0 }}</span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fa {{ types|get:type|get:'icon' }} me-2"></i>{{ types|get:type|get:'label' }}
+                <span class="text-muted small ms-2">共 {{ items.paginator.count }} 条</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">ID</th>
+                            <th>名称</th>
+                            <th style="width:150px;">来源</th>
+                            <th style="width:190px;">删除时间</th>
+                            <th style="width:140px;" class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td class="text-muted">#{{ row.id }}</td>
+                            <td>{{ row.name }}</td>
+                            <td>
+                                {% if row.deleted_by_me %}
+                                    <span class="badge bg-secondary">我删除的</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">我创建的</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ row.deleted_at|date:'Y-m-d H:i:s'|default:'-' }}</td>
+                            <td class="text-end">
+                                <form action="{% url 'my-trash.restore' type row.id %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fa fa-undo me-1"></i>恢复
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                回收站中暂无{{ types|get:type|get:'label' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if items.has_other_pages %}
+        <div class="card-footer">
+            {% include "layouts/_pagination.html" with page_obj=items %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

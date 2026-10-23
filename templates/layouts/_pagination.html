@@ -1,0 +1,39 @@
+{# -*- mode: django -*-}
+{# 通用分页片段：对齐 Bootstrap 5 风格（与 Laravel BootstrapFive Paginator 行为一致）。#}
+{% if page_obj.has_other_pages %}
+<nav aria-label="分页">
+    <ul class="pagination justify-content-center mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">
+                <i class="fa fa-chevron-left"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="fa fa-chevron-left"></i></span></li>
+        {% endif %}
+
+        {% for n in page_obj.paginator.page_range %}
+            {% if n == page_obj.number %}
+            <li class="page-item active"><span class="page-link">{{ n }}</span></li>
+            {% elif n == 1 or n == page_obj.paginator.num_pages or n|add:-3 <= page_obj.number and n|add:3 >= page_obj.number %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ n }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">{{ n }}</a>
+            </li>
+            {% elif n == 2 or n == page_obj.paginator.num_pages|add:-1 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for k, v in request.GET.items %}{% if k != 'page' %}&{{ k }}={{ v }}{% endif %}{% endfor %}">
+                <i class="fa fa-chevron-right"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link"><i class="fa fa-chevron-right"></i></span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}

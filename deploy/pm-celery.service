@@ -1,0 +1,34 @@
+[Unit]
+Description=PM Django Celery Worker
+After=network.target mysqld.service redis.service
+Wants=mysqld.service redis.service
+
+[Service]
+Type=simple
+User=pm
+Group=pm
+WorkingDirectory=/var/www/pm-django
+EnvironmentFile=-/var/www/pm-django/.env
+Environment=DJANGO_SETTINGS_MODULE=pm.settings
+ExecStart=/var/www/pm-django/venv/bin/celery -A pm worker \
+    --loglevel=info \
+    --concurrency=2
+Restart=always
+RestartSec=3
+
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateDevices=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryDenyWriteExecute=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,100 @@
+{% load static %}<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研发全生命周期管理系统 - 登录</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .login-container {
+            margin-top: 100px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .input-group-text {
+            background-color: #f8f9fa;
+            border-right: none;
+        }
+        .text-primary {
+            color: #667eea !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container login-container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="text-primary">产品研发管理系统</h2>
+                            <p class="mb-0">研发全生命周期管理</p>
+                            <p class="text-muted">请登录您的账户</p>
+                        </div>
+
+                        {% if messages %}
+                            {% for message in messages %}
+                                {% if message.tags == 'success' %}
+                                    <div class="alert alert-success">{{ message }}</div>
+                                {% elif message.tags == 'error' %}
+                                    <div class="alert alert-danger">{{ message }}</div>
+                                {% else %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+
+                        <form action="{% url 'login' %}" method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-user"></i></span>
+                                    <input type="text" name="username" id="username" class="form-control" required autofocus>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密码</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                    <input type="password" name="password" id="password" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="remember">
+                                    <label class="form-check-label" for="remember">记住我</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2">登录</button>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'register' %}" class="text-primary">注册新账户</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

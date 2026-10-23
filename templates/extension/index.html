@@ -1,0 +1,88 @@
+{% extends 'layouts/app.html' %}
+{% block title %}审核延期申请{% endblock %}
+{% block content %}
+<h1 class="mb-4">审核延期申请</h1>
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>项目名称</th><th>任务名称</th><th>申请人</th><th>申请天数</th><th>申请理由</th><th>申请时间</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                    {% for application in applications %}
+                    <tr>
+                        <td>{% if application.task and application.task.project %}<a href="{% url 'project.show' application.task.project.id %}">{{ application.task.project.name }}</a>{% endif %}</td>
+                        <td>{% if application.task %}<a href="{% url 'task.show' application.task.id %}">{{ application.task.name }}</a>{% endif %}</td>
+                        <td>{% if application.applicant %}{{ application.applicant.name }}{% endif %}</td>
+                        <td>{{ application.days }}天</td>
+                        <td>{{ application.reason }}</td>
+                        <td>{{ application.created_at|date:'Y-m-d H:i' }}</td>
+                        <td>
+                            {% if not request.user.is_project_manager %}
+                            <div class="btn-group" role="group">
+                                <form action="{% url 'extension.approve' application.id %}" method="POST" style="display: inline;" class="approve-form">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm approve-btn" onclick="return handleApprove(this)">批准</button>
+                                </form>
+                                <button type="button" class="btn btn-danger btn-sm reject-btn" data-bs-toggle="modal" data-bs-target="#rejectModal-{{ application.id }}">驳回</button>
+                            </div>
+                            {% else %}<span class="text-muted">只读</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not applications %}<p class="text-center text-muted mt-4">暂无待审批的延期申请</p>{% endif %}
+    </div>
+</div>
+
+{% for application in applications %}
+<div class="modal fade" id="rejectModal-{{ application.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">驳回延期申请</h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <form action="{% url 'extension.reject' application.id %}" method="POST" class="reject-form">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="reason-{{ application.id }}">驳回理由</label>
+                        <textarea class="form-control" id="reason-{{ application.id }}" name="reason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger reject-submit-btn">确认驳回</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script>
+function handleApprove(button) {
+    if (!confirm('确定批准延期申请？')) return false;
+    button.disabled = true; button.innerHTML = '处理中...';
+    const rejectBtn = button.closest('.btn-group').querySelector('.reject-btn');
+    if (rejectBtn) rejectBtn.disabled = true;
+    button.closest('form').submit();
+    return true;
+}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.reject-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = form.querySelector('.reject-submit-btn');
+            submitBtn.disabled = true; submitBtn.innerHTML = '处理中...';
+            const row = form.closest('tr');
+            if (row) { const ab = row.querySelector('.approve-btn'); if (ab) ab.disabled = true; }
+        });
+    });
+});
+</script>
+{% endblock %}

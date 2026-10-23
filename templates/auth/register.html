@@ -1,0 +1,135 @@
+{% load static %}<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品研发管理系统 - 注册</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .register-container {
+            margin-top: 50px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .input-group-text {
+            background-color: #f8f9fa;
+            border-right: none;
+        }
+        .text-primary {
+            color: #667eea !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container register-container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="text-primary">产品研发管理系统</h2>
+                            <p class="mb-0">研发全生命周期管理</p>
+                            <p class="text-muted">创建新账户</p>
+                        </div>
+
+                        {% if messages %}
+                            {% for message in messages %}
+                                {% if message.tags == 'success' %}
+                                    <div class="alert alert-success">{{ message }}</div>
+                                {% elif message.tags == 'error' %}
+                                    <div class="alert alert-danger">{{ message }}</div>
+                                {% else %}
+                                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+
+                        <form action="{% url 'register' %}" method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="name" class="form-label">姓名</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-user"></i></span>
+                                    <input type="text" name="name" id="name" class="form-control" required autofocus>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-at"></i></span>
+                                    <input type="text" name="username" id="username" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密码</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                    <input type="password" name="password" id="password" class="form-control" required>
+                                </div>
+                                <div class="form-text">密码至少6位，必须同时包含字母和数字</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password_confirmation" class="form-label">确认密码</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                    <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="department_id" class="form-label">部门</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-building"></i></span>
+                                    <select name="department_id" id="department_id" class="form-control" required>
+                                        <option value="">请选择部门</option>
+                                        {% for department in departments %}
+                                            <option value="{{ department.id }}">{{ department.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="role_id" class="form-label">角色</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa fa-key"></i></span>
+                                    <select name="role_id" id="role_id" class="form-control" required>
+                                        <option value="">请选择角色</option>
+                                        {% for role in roles %}
+                                            <option value="{{ role.id }}">{{ role.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2">注册</button>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'login' %}" class="text-primary">返回登录</a>
+                        </div>
+                        <p class="text-center text-muted mt-3 small">注册后需等待管理员激活账户</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

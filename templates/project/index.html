@@ -1,0 +1,80 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}{% if request.user.is_project_manager and not request.user.is_admin %}全部项目列表{% else %}项目管理{% endif %}{% endblock %}
+{% block content %}
+<h1 class="mb-4">{% if request.user.is_project_manager and not request.user.is_admin %}全部项目列表{% else %}项目管理{% endif %}</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card bg-primary text-white"><div class="card-body text-center"><h3>{{ stats.total }}</h3><p>全部项目</p></div></div></div>
+    <div class="col-md-3"><div class="card bg-warning text-white"><div class="card-body text-center"><h3>{{ stats.in_progress }}</h3><p>进行中</p></div></div></div>
+    <div class="col-md-3"><div class="card bg-success text-white"><div class="card-body text-center"><h3>{{ stats.completed }}</h3><p>已完成</p></div></div></div>
+    <div class="col-md-3"><div class="card bg-danger text-white"><div class="card-body text-center"><h3>{{ stats.overdue }}</h3><p>已逾期</p></div></div></div>
+</div>
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card bg-secondary text-white"><div class="card-body text-center"><h3>{{ stats.suspended }}</h3><p>已暂停</p></div></div></div>
+    <div class="col-md-3"><div class="card bg-info text-white"><div class="card-body text-center"><h3>{{ stats.overdue_completed }}</h3><p>逾期完成</p></div></div></div>
+</div>
+
+{% if request.user.is_project_creator or request.user.is_admin %}
+<a href="{% url 'project.create' %}" class="btn btn-primary mb-3">创建项目</a>
+{% endif %}
+
+<ul class="nav nav-tabs mb-3" id="allProjectTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="overdue-projects-tab" data-bs-toggle="tab" data-bs-target="#overdue-projects" type="button" role="tab" aria-controls="overdue-projects" aria-selected="true">
+            <i class="fa fa-exclamation-triangle me-1"></i>已逾期项目 <span class="badge bg-danger ms-1">{{ overdue_projects|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="in-progress-projects-tab" data-bs-toggle="tab" data-bs-target="#in-progress-projects" type="button" role="tab" aria-controls="in-progress-projects" aria-selected="false">
+            <i class="fa fa-spinner me-1"></i>进行中项目 <span class="badge bg-warning text-dark ms-1">{{ in_progress_projects|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="completed-projects-tab" data-bs-toggle="tab" data-bs-target="#completed-projects" type="button" role="tab" aria-controls="completed-projects" aria-selected="false">
+            <i class="fa fa-check-circle me-1"></i>已完成项目 <span class="badge bg-success ms-1">{{ completed_projects|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="suspended-projects-tab" data-bs-toggle="tab" data-bs-target="#suspended-projects" type="button" role="tab" aria-controls="suspended-projects" aria-selected="false">
+            <i class="fa fa-pause-circle me-1"></i>已暂停项目 <span class="badge bg-secondary ms-1">{{ suspended_projects|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="overdue-completed-projects-tab" data-bs-toggle="tab" data-bs-target="#overdue-completed-projects" type="button" role="tab" aria-controls="overdue-completed-projects" aria-selected="false">
+            <i class="fa fa-calendar-check-o me-1"></i>逾期完成项目 <span class="badge bg-info text-dark ms-1">{{ overdue_completed_projects|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="allProjectTabsContent">
+    {% with title='已逾期项目' icon='fa-exclamation-triangle' header_class='bg-danger' progress_color='#dc3545' date_label='截止日期' empty_text='暂无已逾期的项目' projects=overdue_projects paused_tab=False manageable=True active=True %}
+    <div class="tab-pane fade show active" id="overdue-projects" role="tabpanel" aria-labelledby="overdue-projects-tab">
+        {% include 'project/partials/project-table.html' %}
+    </div>
+    {% endwith %}
+
+    {% with title='进行中项目' icon='fa-spinner' header_class='bg-warning' progress_color='#0d6efd' date_label='截止日期' empty_text='暂无进行中的项目' projects=in_progress_projects paused_tab=False manageable=True active=False %}
+    <div class="tab-pane fade" id="in-progress-projects" role="tabpanel" aria-labelledby="in-progress-projects-tab">
+        {% include 'project/partials/project-table.html' %}
+    </div>
+    {% endwith %}
+
+    {% with title='已完成项目' icon='fa-check-circle' header_class='bg-success' progress_color='#198754' date_label='完成日期' empty_text='暂无已完成的项目' projects=completed_projects paused_tab=False manageable=False active=False %}
+    <div class="tab-pane fade" id="completed-projects" role="tabpanel" aria-labelledby="completed-projects-tab">
+        {% include 'project/partials/project-table.html' %}
+    </div>
+    {% endwith %}
+
+    {% with title='已暂停项目' icon='fa-pause-circle' header_class='bg-secondary' progress_color='#6c757d' date_label='暂停日期' empty_text='暂无已暂停的项目' projects=suspended_projects paused_tab=True manageable=False active=False %}
+    <div class="tab-pane fade" id="suspended-projects" role="tabpanel" aria-labelledby="suspended-projects-tab">
+        {% include 'project/partials/project-table.html' %}
+    </div>
+    {% endwith %}
+
+    {% with title='逾期完成项目' icon='fa-calendar-check-o' header_class='bg-info' progress_color='#0dcaf0' date_label='完成日期' empty_text='暂无逾期完成的项目' projects=overdue_completed_projects paused_tab=False manageable=False active=False %}
+    <div class="tab-pane fade" id="overdue-completed-projects" role="tabpanel" aria-labelledby="overdue-completed-projects-tab">
+        {% include 'project/partials/project-table.html' %}
+    </div>
+    {% endwith %}
+</div>
+{% endblock %}

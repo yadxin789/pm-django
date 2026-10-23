@@ -1,0 +1,58 @@
+{% extends 'layouts/app.html' %}
+{% block title %}知识库{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fa fa-book me-2"></i>知识库</h5>
+        <a href="{% url 'knowledge.create' %}" class="btn btn-sm btn-primary"><i class="fa fa-plus me-1"></i>新建知识库</a>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{% url 'knowledge.index' %}" class="row g-2 mb-3">
+            <div class="col-auto"><input type="text" name="keyword" class="form-control form-control-sm" placeholder="搜索知识库标题" value="{{ keyword }}"></div>
+            <div class="col-auto">
+                <select name="cate_id" class="form-select form-select-sm">
+                    <option value="">全部分类</option>
+                    {% for c in categories %}
+                    <option value="{{ c.id }}" {% if cate_id == c.id|stringformat:'s' %}selected{% endif %}>{{ c.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="scope" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="share" {% if scope == 'share' %}selected{% endif %}>共享知识</option>
+                    <option value="mine" {% if scope == 'mine' %}selected{% endif %}>我的知识</option>
+                </select>
+            </div>
+            <div class="col-auto"><button class="btn btn-sm btn-outline-primary">搜索</button></div>
+        </form>
+
+        {% if not items %}
+        <p class="text-muted mb-0">暂无知识库。</p>
+        {% else %}
+        <div class="row g-3">
+            {% for item in items %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <span class="badge {% if item.k.is_share %}bg-success{% else %}bg-secondary{% endif %}">{% if item.k.is_share %}共享{% else %}个人{% endif %}</span>
+                            <span class="text-muted small">{{ item.k.read }} 阅读 · {{ item.docs_count }} 文档</span>
+                        </div>
+                        <h6 class="card-title mt-2 mb-1"><a href="{% url 'knowledge.show' item.k.id %}" class="text-decoration-none">{{ item.k.title }}</a></h6>
+                        {% if item.k.desc %}<p class="card-text small text-muted">{{ item.k.desc|truncatechars:60 }}</p>{% endif %}
+                        <small class="text-muted">{% if item.author %}{{ item.author.name }}{% else %}—{% endif %}{% if item.category %} · {{ item.category.title }}{% endif %}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            {% if knowledges.has_previous %}<a class="btn btn-sm btn-outline-secondary me-1" href="?page={{ knowledges.previous_page_number }}{% if keyword %}&keyword={{ keyword }}{% endif %}">上一页</a>{% endif %}
+            <span class="align-self-center mx-2">第 {{ knowledges.number }} / {{ knowledges.paginator.num_pages }} 页</span>
+            {% if knowledges.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?page={{ knowledges.next_page_number }}{% if keyword %}&keyword={{ keyword }}{% endif %}">下一页</a>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

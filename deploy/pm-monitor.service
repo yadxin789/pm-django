@@ -1,0 +1,7 @@
+[Unit]
+Description=PM services health monitor
+After=pm-django.service pm-celery.service pm-celery-beat.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pm-monitor.sh

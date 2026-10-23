@@ -1,0 +1,52 @@
+﻿{% load pm_tags %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 mb-2">
+    <div>
+        <h4 class="mb-0">
+            <i class="fa fa-folder-open text-primary me-2"></i>{{ project.name }}
+        </h4>
+        <span class="text-muted small">
+            项目编码：{{ project.code }}
+            · 状态：
+            <span class="badge" style="background-color: {{ project.status|status_color }}; color: white;">
+                {{ project.status|status_label:project }}
+            </span>
+        </span>
+    </div>
+</div>
+<ul class="nav nav-tabs mb-3" style="border-bottom: 2px solid #dee2e6;">
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'overview' %}active fw-bold{% endif %}" style="{% if active_tab == 'overview' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'project.show' project.id %}">
+            <i class="fa fa-tachometer me-1"></i>项目概览
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'gantt' %}active fw-bold{% endif %}" style="{% if active_tab == 'gantt' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'project.gantt' project.id %}">
+            <i class="fa fa-bar-chart me-1"></i>甘特图
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'history' %}active fw-bold{% endif %}" style="{% if active_tab == 'history' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'history.project.history' project.id %}">
+            <i class="fa fa-history me-1"></i>项目履历
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'logs' %}active fw-bold{% endif %}" style="{% if active_tab == 'logs' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'project.logs' project.id %}">
+            <i class="fa fa-list-alt me-1"></i>项目日志
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'collab' %}active fw-bold{% endif %}" style="{% if active_tab == 'collab' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'project.collab.index' project.id %}">
+            <i class="fa fa-users me-1"></i>协同办公
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'chat' %}active fw-bold{% endif %}" style="{% if active_tab == 'chat' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'messages.index' project.id %}">
+            <i class="fa fa-comments me-1"></i>聊天室
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'voice' %}active fw-bold{% endif %}" style="{% if active_tab == 'voice' %}background-color:#fff; border-color:#dee2e6 #dee2e6 #fff; color:#0d6efd;{% else %}color:#495057;{% endif %}" href="{% url 'project.voice.index' project.id %}">
+            <i class="fa fa-phone me-1"></i>电话会议
+        </a>
+    </li>
+</ul>

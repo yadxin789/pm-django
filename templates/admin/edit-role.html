@@ -1,0 +1,15 @@
+{% extends 'layouts/app.html' %}
+{% block title %}编辑角色{% endblock %}
+{% block content %}
+<h1 class="mb-4">编辑角色：{{ role.name }}</h1>
+<div class="card"><div class="card-body">
+<form method="POST" action="{% url 'admin.roles.update' role.id %}">{% csrf_token %}
+<table class="table table-bordered form-table mb-0">
+<tr><td class="form-table-label">角色名称 <font color="red">*</font></td><td><input name="name" class="form-control" value="{{ role.name }}" required></td></tr>
+<tr><td class="form-table-label">角色编码 <font color="red">*</font></td><td><input name="code" class="form-control" value="{{ role.code }}" required></td></tr>
+</table>
+<div class="pt-3"><button class="btn btn-primary"><i class="fa fa-check"></i> 保存</button> <a href="{% url 'admin.roles' %}" class="btn btn-outline-secondary">返回</a></div>
+</form>
+</div></div>
+<style>.form-table td{padding:12px 16px!important;vertical-align:middle}.form-table-label{width:130px;background-color:#f8f9fa!important;font-weight:600}</style>
+{% endblock %}

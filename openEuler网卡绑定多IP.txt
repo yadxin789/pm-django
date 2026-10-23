@@ -1,0 +1,74 @@
+## 十四、网卡高级配置：多IP、网卡绑定（bond）
+# ========== 单网卡增加额外IP（同一网卡多个静态IP，永久生效） ==========
+# 示例：ens33原有192.168.1.76/24，附加第二个IP：192.168.1.77/24
+nmcli connection modify ens33 +ipv4.addresses 192.168.1.77/24
+# 附加第三个IP
+nmcli connection modify ens33 +ipv4.addresses 192.168.1.78/24
+
+# 重载网卡生效
+nmcli connection down ens33 && nmcli connection up ens33
+ip addr   # 验证，会看到多个inet地址
+
+# 删除网卡上某个附加IP（注意减号 -）
+nmcli connection modify ens33 -ipv4.addresses 192.168.1.78/24
+nmcli connection up ens33
+
+# 临时添加附加IP（重启失效，测试用）
+ip addr add 192.168.1.77/24 dev ens33
+# 临时删除附加IP
+ip addr del 192.168.1.77/24 dev ens33
+
+# ========== 网卡绑定 bond（多网卡聚合，高可用/带宽叠加） ==========
+# 前提：两张物理网卡 ens33、ens34，无现有connection
+# 1. 创建bond连接，模式1=主备（active-backup，故障自动切换，最常用）
+nmcli connection add type bond con-name bond0 ifname bond0 mode active-backup
+
+# 2. 将ens33、ens34加入bond0
+nmcli connection add type ethernet con-name bond0-slave-ens33 ifname ens33 master bond0
+nmcli connection add type ethernet con-name bond0-slave-ens34 ifname ens34 master bond0
+
+# 3. 设置bond0静态IP
+nmcli connection modify bond0 \
+ipv4.method manual \
+ipv4.addresses 192.168.1.76/24 \
+ipv4.gateway 192.168.1.1 \
+ipv4.dns 223.5.5.5,114.114.114.114 \
+connection.autoconnect yes
+
+# 4. 启用bond0
+nmcli connection up bond0
+ip addr
+
+# bond常用mode说明
+# mode 0 balance-rr 轮询，带宽叠加，需要交换机配置
+# mode 1 active-backup 主备，不需要交换机配置，生产高可用首选
+# mode 4 802.3ad LACP 链路聚合，交换机必须开启LACP
+
+# bond查看状态
+cat /proc/net/bonding/bond0
+
+# 删除bond（清理，恢复独立网卡）
+nmcli connection delete bond0
+nmcli connection delete bond0-slave-ens33
+nmcli connection delete bond0-slave-ens34
+
+# ========== 网卡启停、重命名 ==========
+# 单独关闭网卡
+nmcli connection down ens33
+# 启用网卡
+nmcli connection up ens33
+
+# 修改网卡连接名称（重命名连接，不是内核设备名）
+nmcli connection modify old-name connection.new-name new-name
+
+# 修改内核网卡设备名（如ens33改成eth0，慎用，容易断网）
+# 可通过udev规则，一般服务器不推荐随意修改内核设备名
+
+
+
+注意事项：
+
+1. 单网卡多 IP：`+ipv4.addresses` 加号是追加；`-ipv4.addresses` 减号是删除，不要漏掉符号。
+2. Bond 主备模式（mode1）最简单，不需要交换机特殊配置；0/4 模式必须交换机配合，否则网络异常。
+3. 创建 bond 前，ens33/ens34 原有网络连接最好先删除，防止冲突：`nmcli connection delete ens33`
+4. 操作 bond 会断网，尽量在本地控制台操作。

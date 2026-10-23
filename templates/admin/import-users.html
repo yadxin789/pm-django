@@ -1,0 +1,99 @@
+{% extends 'layouts/app.html' %}
+{% block title %}批量导入用户{% endblock %}
+{% block content %}
+<h1 class="mb-4">批量导入用户</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <strong>上传 CSV 文件</strong>
+            </div>
+            <div class="card-body">
+                <form action="{% url 'admin.users.import' %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">选择 CSV 文件</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text">仅支持 .csv 格式，UTF-8 编码</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-upload me-1"></i> 开始导入
+                    </button>
+                    <a href="{% url 'admin.users' %}" class="btn btn-secondary ms-2">返回</a>
+                </form>
+            </div>
+        </div>
+
+        {% if import_result %}
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <strong>导入结果</strong>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="fs-2 text-success">{{ import_result.success }}</div>
+                        <div class="text-muted">成功</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-2 text-warning">{{ import_result.skipped }}</div>
+                        <div class="text-muted">跳过（已存在）</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fs-2 text-danger">{{ import_result.failed }}</div>
+                        <div class="text-muted">失败</div>
+                    </div>
+                </div>
+                {% if import_result.errors %}
+                <hr>
+                <h6>错误详情：</h6>
+                <ul class="text-danger small">
+                    {% for e in import_result.errors %}
+                    <li>{{ e }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <strong>CSV 格式说明</strong>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">CSV 文件应包含以下列（按顺序，不含表头）：</p>
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr><th>列</th><th>字段</th><th>示例</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>用户名</td><td>zhangsan</td></tr>
+                        <tr><td>2</td><td>密码</td><td>abc123</td></tr>
+                        <tr><td>3</td><td>姓名</td><td>张三</td></tr>
+                        <tr><td>4</td><td>部门ID</td><td>1</td></tr>
+                        <tr><td>5</td><td>角色ID</td><td>3</td></tr>
+                    </tbody>
+                </table>
+
+                <h6 class="mt-3">当前可用的部门和角色：</h6>
+                <p class="mb-1"><strong>部门：</strong></p>
+                <ul class="small">
+                    {% for dept in departments %}
+                    <li>{{ dept.id }} — {{ dept.name }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="mb-1"><strong>角色：</strong></p>
+                <ul class="small">
+                    {% for role in roles %}
+                    <li>{{ role.id }} — {{ role.name }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

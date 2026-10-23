@@ -1,0 +1,416 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}创建项目{% endblock %}
+{% block content %}
+<h1 class="mb-4">创建项目</h1>
+
+<form method="POST" action="{% url 'project.store' %}" id="project-form" onsubmit="return prepareSubmit()">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-md-2">
+            <label for="name" class="form-label">项目名称 *</label>
+            <input type="text" name="name" id="name" class="form-control" required value="">
+        </div>
+        <div class="col-md-1">
+            <label for="code" class="form-label">项目编码</label>
+            <input type="text" name="code" id="code" class="form-control" placeholder="留空自动生成" value="">
+            <small class="text-muted">留空将自动生成唯一编码</small>
+        </div>
+        <div class="col-md-1">
+            <label for="version" class="form-label">版本号</label>
+            <input type="text" name="version" id="version" class="form-control" value="V1.0">
+        </div>
+        <div class="col-md-2">
+            <label for="product_name" class="form-label">产品名称 *</label>
+            <input type="text" name="product_name" id="product_name" class="form-control" required value="">
+        </div>
+        <div class="col-md-2">
+            <label for="product_model" class="form-label">产品型号 *</label>
+            <input type="text" name="product_model" id="product_model" class="form-control" required value="">
+        </div>
+        <div class="col-md-2">
+            <label for="start_date" class="form-label">开始日期 *</label>
+            <input type="date" name="start_date" id="start_date" class="form-control" required onchange="calculateTaskDates()" value="">
+        </div>
+    </div>
+
+    <div class="row g-3 mt-3">
+        <div class="col-md-4">
+            <label for="template_id" class="form-label">导入模板</label>
+            <select name="template_id" id="template_id" class="form-control">
+                <option value="">选择模板（可选）</option>
+                {% for template in templates %}
+                <option value="{{ template.id }}">{{ template.name }}</option>
+                {% empty %}
+                <option value="" disabled>暂无模板，请先创建模板</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="button" class="btn btn-success w-full" onclick="loadTemplate()" {% if not templates %}disabled{% endif %}>导入模板配置</button>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>选择参与部门 <small class="text-muted">（勾选需要参与项目的部门）</small></h4>
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-3" id="dept-checkbox-container">
+                    {% for dept_id, department in dept_map.items %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input dept-checkbox" type="checkbox" id="dept-check-{{ dept_id }}" name="selected_depts[]" value="{{ dept_id }}" checked onchange="onDeptSelectionChange()">
+                        <label class="form-check-label" for="dept-check-{{ dept_id }}">{% if department %}{{ department.name }}{% else %}部门{{ dept_id }}{% endif %}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllDepts()">全选</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="deselectAllDepts()">取消全选</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>部门天数配置</h4>
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted small mb-2">设置每个部门的天数。部门间串行执行，部门内任务并联同步执行（同部门任务起止日期相同）</p>
+                <div class="row g-3" id="dept-days-container">
+                    {% for dept_id, department in dept_map.items %}
+                    <div class="col-md-2 dept-days-wrapper" data-dept-id="{{ dept_id }}">
+                        <label class="form-label">{% if department %}{{ department.name }}{% else %}部门{{ dept_id }}{% endif %}</label>
+                        <div class="input-group">
+                            <input type="number" name="dept_days[{{ dept_id }}]" class="form-control dept-days-input" value="5" min="1" data-dept-id="{{ dept_id }}" onchange="calculateTaskDates()">
+                            <span class="input-group-text">天</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>任务配置 <small class="text-muted">（部门内任务并联同步）</small></h4>
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-bordered table-striped" id="task-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%">任务类型</th>
+                            <th style="width: 10%">部门</th>
+                            <th style="width: 6%" class="text-center">选中</th>
+                            <th style="width: 12%">起始日期</th>
+                            <th style="width: 12%">截止日期</th>
+                            <th style="width: 18%">执行人</th>
+                            <th style="width: 18%">审核人</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-body">
+                        {% for type in task_types %}
+                        <tr class="task-row" data-task-index="{{ forloop.counter0 }}" data-dept-id="{{ type.department_id }}" data-task-type-id="{{ type.id }}">
+                            <td>
+                                <input type="hidden" name="tasks[{{ forloop.counter0 }}][task_type_id]" value="{{ type.id }}">
+                                {{ type.name }}
+                            </td>
+                            <td>
+                                <input type="hidden" name="tasks[{{ forloop.counter0 }}][department_id]" value="{{ type.department_id }}">
+                                {% if type.department %}{{ type.department.name }}{% endif %}
+                            </td>
+                            <td class="text-center">
+                                <input type="checkbox" name="tasks[{{ forloop.counter0 }}][enabled]" value="1" class="form-check-input task-enabled-checkbox" data-task-index="{{ forloop.counter0 }}" checked onchange="onTaskEnabledChange()">
+                            </td>
+                            <td>
+                                <input type="date" name="tasks[{{ forloop.counter0 }}][start_date]" class="form-control form-control-sm task-start-date" readonly>
+                            </td>
+                            <td>
+                                <input type="date" name="tasks[{{ forloop.counter0 }}][end_date]" class="form-control form-control-sm task-end-date" readonly>
+                            </td>
+                            <td>
+                                <select name="tasks[{{ forloop.counter0 }}][executor_id]" class="form-control form-select-sm executor-select" data-dept-id="{{ type.department_id }}">
+                                    <option value="">选择执行人</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select name="tasks[{{ forloop.counter0 }}][auditor_id]" class="form-control form-select-sm auditor-select" data-dept-id="{{ type.department_id }}">
+                                    <option value="">选择审核人</option>
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-4 card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-2"><label class="form-label">起始日期</label><input type="date" id="stats-start-date" class="form-control" readonly></div>
+                    <div class="col-md-2"><label class="form-label">任务总数量</label><input type="number" id="stats-task-count" class="form-control" readonly></div>
+                    <div class="col-md-2"><label class="form-label">部门数量</label><input type="number" id="stats-dept-count" class="form-control" readonly></div>
+                    <div class="col-md-2"><label class="form-label">项目总天数</label><input type="number" id="stats-total-days" class="form-control" readonly></div>
+                    <div class="col-md-2"><label class="form-label">项目截止日期</label><input type="date" id="stats-end-date" class="form-control" readonly></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-4">创建项目</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ dept_order|json_script:"dept-order" }}
+<script>
+const oldTaskExecutorIds = [];
+const oldTaskAuditorIds = [];
+const deptOrder = JSON.parse(document.getElementById('dept-order').textContent);
+
+function prepareSubmit() {
+    const selectedDepts = getSelectedDepts();
+    document.querySelectorAll('.task-row').forEach(row => {
+        const deptId = row.dataset.deptId;
+        const taskIndex = row.dataset.taskIndex;
+        const isVisible = selectedDepts.includes(String(deptId));
+        const isEnabled = isTaskEnabled(taskIndex);
+        row.querySelectorAll('input, select').forEach(el => {
+            if (!isVisible || !isEnabled) {
+                if (el.name) {
+                    el.setAttribute('data-disabled-name', el.name);
+                    el.removeAttribute('name');
+                }
+            } else {
+                if (el.hasAttribute('data-disabled-name')) {
+                    el.name = el.getAttribute('data-disabled-name');
+                    el.removeAttribute('data-disabled-name');
+                }
+            }
+        });
+    });
+
+    let hasError = false;
+    const errorList = [];
+    if (selectedDepts.length === 0) {
+        errorList.push('请至少选择一个部门');
+        hasError = true;
+    }
+    document.querySelectorAll('.task-row').forEach(row => {
+        const deptId = row.dataset.deptId;
+        const taskIndex = row.dataset.taskIndex;
+        if (!selectedDepts.includes(String(deptId))) return;
+        if (!isTaskEnabled(taskIndex)) return;
+        const taskName = row.querySelector('td:first-child')?.innerText?.trim() || '未命名任务';
+        const deptName = row.querySelector('td:nth-child(2)')?.innerText?.trim() || '';
+        const label = deptName ? `【${deptName}】${taskName}` : taskName;
+        const executor = row.querySelector('.executor-select');
+        const auditor = row.querySelector('.auditor-select');
+        if (!executor || executor.value === '' || executor.value === null || executor.value === undefined) {
+            errorList.push(`任务「${label}」未选择执行人`);
+            hasError = true;
+        }
+        if (!auditor || auditor.value === '' || auditor.value === null || auditor.value === undefined) {
+            errorList.push(`任务「${label}」未选择审核人`);
+            hasError = true;
+        }
+    });
+    if (!document.getElementById('name').value.trim()) { errorList.push('请填写项目名称'); hasError = true; }
+    if (!document.getElementById('product_name').value.trim()) { errorList.push('请填写产品名称'); hasError = true; }
+    if (!document.getElementById('product_model').value.trim()) { errorList.push('请填写产品型号'); hasError = true; }
+    if (!document.getElementById('start_date').value) { errorList.push('请选择开始日期'); hasError = true; }
+
+    const errorMsg = errorList.join('\n');
+    if (hasError) {
+        showGlobalModal('danger', '项目创建失败', errorMsg);
+        return false;
+    }
+    document.getElementById('project-form').submit();
+    return false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    let loadedCount = 0;
+    const totalLoads = deptOrder.filter(Boolean).length * 2;
+
+    function checkAllLoaded() {
+        loadedCount++;
+        if (loadedCount >= totalLoads) {
+            restoreOldSelections();
+            calculateTaskDates();
+        }
+    }
+
+    deptOrder.forEach(deptId => {
+        if (!deptId) return;
+        fetch(`/project/get-designers/${deptId}`)
+            .then(res => res.json())
+            .then(data => {
+                document.querySelectorAll(`.executor-select[data-dept-id="${deptId}"]`).forEach(select => {
+                    data.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = user.name;
+                        select.appendChild(option);
+                    });
+                });
+                checkAllLoaded();
+            })
+            .catch(() => checkAllLoaded());
+        fetch(`/project/get-managers/${deptId}`)
+            .then(res => res.json())
+            .then(data => {
+                document.querySelectorAll(`.auditor-select[data-dept-id="${deptId}"]`).forEach(select => {
+                    data.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = user.name;
+                        select.appendChild(option);
+                    });
+                });
+                checkAllLoaded();
+            })
+            .catch(() => checkAllLoaded());
+    });
+    if (totalLoads === 0) { calculateTaskDates(); }
+});
+
+function restoreOldSelections() {
+    document.querySelectorAll('.task-row').forEach((row, index) => {
+        const executorSelect = row.querySelector('.executor-select');
+        const auditorSelect = row.querySelector('.auditor-select');
+        if (executorSelect && oldTaskExecutorIds[index]) { executorSelect.value = oldTaskExecutorIds[index]; }
+        if (auditorSelect && oldTaskAuditorIds[index]) { auditorSelect.value = oldTaskAuditorIds[index]; }
+    });
+}
+
+function getSelectedDepts() {
+    const selected = [];
+    document.querySelectorAll('.dept-checkbox:checked').forEach(cb => { selected.push(cb.value); });
+    return selected;
+}
+
+function onDeptSelectionChange() {
+    const selectedDepts = getSelectedDepts();
+    document.querySelectorAll('.dept-days-wrapper').forEach(wrapper => {
+        const deptId = wrapper.dataset.deptId;
+        wrapper.style.display = selectedDepts.includes(String(deptId)) ? '' : 'none';
+    });
+    document.querySelectorAll('.task-row').forEach(row => {
+        const deptId = row.dataset.deptId;
+        row.style.display = selectedDepts.includes(String(deptId)) ? '' : 'none';
+    });
+    calculateTaskDates();
+}
+
+function selectAllDepts() {
+    document.querySelectorAll('.dept-checkbox').forEach(cb => { cb.checked = true; });
+    onDeptSelectionChange();
+}
+function deselectAllDepts() {
+    document.querySelectorAll('.dept-checkbox').forEach(cb => { cb.checked = false; });
+    onDeptSelectionChange();
+}
+
+function loadTemplate() {
+    const templateId = document.getElementById('template_id').value;
+    if (!templateId) { alert('请先选择一个模板'); return; }
+    fetch(`/project/get-template/${templateId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.selected_depts) {
+                document.querySelectorAll('.dept-checkbox').forEach(cb => { cb.checked = false; });
+                data.selected_depts.forEach(deptId => {
+                    const checkbox = document.getElementById('dept-check-' + deptId);
+                    if (checkbox) { checkbox.checked = true; }
+                });
+            }
+            if (data.dept_days) {
+                Object.keys(data.dept_days).forEach(deptId => {
+                    const daysInput = document.querySelector(`.dept-days-input[data-dept-id="${deptId}"]`);
+                    if (daysInput) { daysInput.value = data.dept_days[deptId]; }
+                });
+            }
+            if (data.tasks && data.tasks.length > 0) {
+                const allRows = Array.from(document.querySelectorAll('.task-row'));
+                const rowByTypeId = {};
+                allRows.forEach(row => { rowByTypeId[String(row.dataset.taskTypeId)] = row; });
+                const orderedRows = [];
+                const matchedTypeIds = {};
+                data.tasks.forEach(templateTask => {
+                    const row = rowByTypeId[String(templateTask.task_type_id)];
+                    if (row) { orderedRows.push(row); matchedTypeIds[String(templateTask.task_type_id)] = true; }
+                });
+                allRows.forEach(row => {
+                    if (!matchedTypeIds[String(row.dataset.taskTypeId)]) { orderedRows.push(row); }
+                });
+                const taskBody = document.getElementById('task-body');
+                orderedRows.forEach(row => taskBody.appendChild(row));
+                document.querySelectorAll('.task-enabled-checkbox').forEach(cb => { cb.checked = false; });
+                data.tasks.forEach(templateTask => {
+                    const row = rowByTypeId[String(templateTask.task_type_id)];
+                    if (!row) return;
+                    const checkbox = row.querySelector('.task-enabled-checkbox');
+                    if (checkbox) { checkbox.checked = true; }
+                    const executorSelect = row.querySelector('.executor-select');
+                    if (executorSelect && templateTask.executor_id) { executorSelect.value = templateTask.executor_id; }
+                    const auditorSelect = row.querySelector('.auditor-select');
+                    if (auditorSelect && templateTask.auditor_id) { auditorSelect.value = templateTask.auditor_id; }
+                });
+            }
+            onDeptSelectionChange();
+            calculateTaskDates();
+            alert('模板配置已导入（部门选择、天数、任务顺序、执行人和审核人）');
+        })
+        .catch(error => {
+            console.error('加载模板失败:', error);
+            alert('加载模板失败，请重试');
+        });
+}
+
+function isTaskEnabled(taskIndex) {
+    const checkbox = document.querySelector(`.task-enabled-checkbox[data-task-index="${taskIndex}"]`);
+    return checkbox && checkbox.checked;
+}
+function onTaskEnabledChange() { calculateTaskDates(); }
+
+function calculateTaskDates() {
+    const startDateInput = document.getElementById('start_date');
+    if (!startDateInput.value) return;
+    const startDate = new Date(startDateInput.value);
+    let deptStartDate = new Date(startDate);
+    const selectedDepts = getSelectedDepts();
+    const deptDays = {};
+    document.querySelectorAll('.dept-days-input').forEach(input => {
+        const deptId = input.dataset.deptId;
+        deptDays[deptId] = parseInt(input.value) || 1;
+    });
+    let projectEndDate = null;
+    let totalDays = 0;
+    let visibleTaskCount = 0;
+    deptOrder.forEach(deptId => {
+        if (!selectedDepts.includes(String(deptId))) return;
+        const days = deptDays[deptId] || 1;
+        const deptEndDate = new Date(deptStartDate);
+        deptEndDate.setDate(deptEndDate.getDate() + days - 1);
+        document.querySelectorAll(`.task-row[data-dept-id="${deptId}"]`).forEach(row => {
+            const taskIndex = row.dataset.taskIndex;
+            if (!isTaskEnabled(taskIndex)) return;
+            const startInput = row.querySelector('.task-start-date');
+            const endInput = row.querySelector('.task-end-date');
+            if (startInput) { startInput.value = deptStartDate.toISOString().split('T')[0]; }
+            if (endInput) { endInput.value = deptEndDate.toISOString().split('T')[0]; }
+            visibleTaskCount++;
+        });
+        projectEndDate = deptEndDate;
+        totalDays += days;
+        deptStartDate = new Date(deptEndDate);
+        deptStartDate.setDate(deptStartDate.getDate() + 1);
+    });
+    document.getElementById('stats-start-date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('stats-task-count').value = visibleTaskCount;
+    document.getElementById('stats-dept-count').value = selectedDepts.length;
+    document.getElementById('stats-total-days').value = totalDays;
+    document.getElementById('stats-end-date').value = projectEndDate ? projectEndDate.toISOString().split('T')[0] : '';
+}
+</script>
+{% endblock %}

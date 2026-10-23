@@ -1,0 +1,75 @@
+{% extends 'layouts/app.html' %}
+{% block title %}管理后台{% endblock %}
+{% block content %}
+<h1 class="mb-4">管理后台</h1>
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-folder-open"></i> 项目总数</h5>
+                <h2 class="card-text">{{ stats.projects }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-users"></i> 用户总数</h5>
+                <h2 class="card-text">{{ stats.users }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-file"></i> 文件总数</h5>
+                <h2 class="card-text">{{ stats.files }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa fa-tasks"></i> 任务总数</h5>
+                <h2 class="card-text">{{ stats.tasks }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header bg-white">
+            <h4 class="mb-0">快速导航</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <a href="{% url 'admin.users' %}" class="btn w-100 btn-primary">用户管理</a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'admin.departments' %}" class="btn w-100 btn-secondary">部门管理</a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'admin.roles' %}" class="btn w-100 btn-info">角色管理</a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'admin.statuses' %}" class="btn w-100 btn-warning">状态管理</a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'admin.task-types' %}" class="btn w-100 btn-info">任务类型</a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'admin.file-repository' %}" class="btn w-100 btn-danger">文件库</a>
+                </div>
+                <div class="col-md-2 mt-3">
+                    <a href="{% url 'admin.chat-messages' %}" class="btn w-100 btn-secondary">聊天记录</a>
+                </div>
+                <div class="col-md-2 mt-3">
+                    <a href="{% url 'admin.wecom.settings' %}" class="btn w-100 btn-success">企业微信</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

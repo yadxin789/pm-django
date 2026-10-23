@@ -1,0 +1,22 @@
+[Unit]
+Description=PM Voice Signaling (WebSocket)
+After=network.target mysqld.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/pm-django
+Environment=PM_PROJECT_DIR=/var/www/pm-django
+Environment=PM_SIGNAL_HOST=127.0.0.1
+Environment=PM_SIGNAL_PORT=3001
+EnvironmentFile=-/var/www/pm-django/.env
+ExecStart=/var/www/pm-django/venv/bin/python /var/www/pm-django/deploy/pm-signal.py
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

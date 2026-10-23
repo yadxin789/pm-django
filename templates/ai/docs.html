@@ -1,0 +1,125 @@
+{% extends 'layouts/app.html' %}
+{% block title %}AI 文档生成{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa fa-file-text-o me-2 text-primary"></i>AI 文档生成
+                    <span class="badge bg-secondary align-middle">自然语言 → 文档</span></h4>
+                <a href="{% url 'ai.chat' %}" class="btn btn-sm btn-outline-primary">AI 助手</a>
+            </div>
+
+            <div class="alert alert-info small">
+                💡 用自然语言描述文档所需的数据、参数与内容要求，AI 会自动读取<b>模板文件、范例文件、知识库、支援文件</b>，
+                并结合 PM 系统真实数据，按模板生成可直接交付的文档。
+            </div>
+
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="card">
+                        <div class="card-header bg-white fw-bold">① 选择文档类型模板</div>
+                        <div class="card-body p-0" style="max-height:60vh;overflow-y:auto;">
+                            <div class="list-group list-group-flush" id="template-list">
+                                {% for t in templates %}
+                                <button type="button" class="list-group-item list-group-item-action template-item"
+                                        data-id="{{ t.id }}" data-name="{{ t.name }}" data-desc="{{ t.description|default:'' }}">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">{{ t.name }}</span>
+                                        <span class="badge bg-light text-dark">{{ t.category }}</span>
+                                    </div>
+                                    <small class="text-muted d-block">{{ t.description }}</small>
+                                </button>
+                                {% empty %}
+                                <div class="list-group-item text-muted">暂无可用文档模板。</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-7">
+                    <div class="card">
+                        <div class="card-header bg-white fw-bold">② 用自然语言描述，AI 生成文档</div>
+                        <div class="card-body">
+                            <form method="POST" action="{% url 'ai.docs.generate' %}" id="generate-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="template_id" id="template_id" required>
+                                <div class="mb-3">
+                                    <label class="form-label">已选模板</label>
+                                    <input type="text" class="form-control" id="selected-template" readonly placeholder="请先在左侧选择模板">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">选择 AI 模型</label>
+                                    <select name="model_id" class="form-select">
+                                        {% for m in models %}
+                                        <option value="{{ m.id }}" {% if default_model and default_model.id == m.id %}selected{% endif %}>
+                                            {% if m.provider %}{{ m.provider.name }}{% endif %} · {{ m.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">自然语言描述（数据 / 参数 / 内容要求）</label>
+                                    <textarea name="description" rows="6" class="form-control" placeholder="例如：为我生成一份「XXX产品研发项目」立项报告，项目名称为…，产品型号为…，周期为2026-10-01至2026-12-31，主要交付物包括：……"></textarea>
+                                </div>
+                                <button class="btn btn-primary" id="generate-btn"><i class="fa fa-magic me-1"></i>生成文档</button>
+                            </form>
+
+                            {% if generated %}
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 text-success">
+                                    ✅ 已生成：{{ generated.template_name }}
+                                    <small class="text-muted">（{{ generated.at }}）</small>
+                                </h6>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="copyDoc()">复制全文</button>
+                            </div>
+                            <div class="small text-muted mb-2">你的描述：{{ generated.description }}</div>
+                            <textarea id="doc-result" class="form-control font-monospace" rows="18" style="white-space:pre-wrap;">{{ generated.content }}</textarea>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const items = document.querySelectorAll('.template-item');
+    const tid = document.getElementById('template_id');
+    const st = document.getElementById('selected-template');
+
+    items.forEach(function (item) {
+        item.addEventListener('click', function () {
+            items.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            tid.value = item.dataset.id;
+            st.value = item.dataset.name + ' —— ' + item.dataset.desc;
+        });
+    });
+
+    // 防重复提交：提交时禁用按钮，避免重复调用 AI 浪费共享额度
+    const form = document.getElementById('generate-form');
+    const btn = document.getElementById('generate-btn');
+    form.addEventListener('submit', function (e) {
+        if (btn.disabled) { e.preventDefault(); return; }
+        if (!tid.value) { e.preventDefault(); alert('请先在左侧选择模板'); return; }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>生成中…（请勿重复点击）';
+    });
+});
+function copyDoc() {
+    const el = document.getElementById('doc-result');
+    if (!el) return;
+    el.select();
+    document.execCommand('copy');
+    alert('文档内容已复制');
+}
+</script>
+{% endblock %}

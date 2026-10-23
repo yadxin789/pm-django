@@ -1,0 +1,150 @@
+# openEuler 运维命令备忘（纯文本版，直接复制进服务器）
+# 语法：命令 [选项] [参数]
+# openEuler：dnf包管理器、systemd、firewalld
+
+## 一、系统信息
+uname -a                # 查看内核全部信息
+uname -r                # 内核版本
+cat /etc/openEuler-release # openEuler版本
+hostname                # 查看主机名
+hostnamectl set-hostname openeuler-01 #永久改主机名
+date                    # 当前时间
+timedatectl set-timezone Asia/Shanghai #设置时区
+uptime                  # 开机时长+负载
+w                       # 登录用户+负载
+who                     # 查看登录用户
+
+## 二、目录文件操作
+pwd                     # 当前路径
+cd                      # 回到家目录
+cd ..                   # 上级目录
+cd -                    # 上一次目录
+ls -lh                  # 列表，可读大小
+ls -la                  # 含隐藏文件
+mkdir -p /data/log      # 递归建目录
+rm test.txt             # 删除文件
+rm -rf /data/tmp        # 删除目录（高危！慎用）
+cp file.txt /tmp/       # 复制文件
+cp -r /data/src /data/dst #复制目录
+mv old.txt new.txt      # 重命名
+mv file.txt /tmp/       # 移动文件
+touch test.log          # 创建空文件
+
+cat /etc/hosts          # 一次性查看小文件
+less app.log            # 分页查看大文件 q退出
+head -n20 app.log       # 前20行
+tail -f app.log         # 实时跟踪日志
+tail -n100 -f app.log   # 末尾100行实时跟踪
+
+find /var/log -name "*.log" #查找文件
+du -sh /data            # 目录总大小
+df -h                   # 磁盘分区使用率
+
+## 三、文本处理（日志过滤）
+grep -n "error" app.log          #查找关键词，显示行号
+grep -ir "warn" /var/log         #递归忽略大小写搜索
+sed -i 's/A/B/g' file.txt        #全局替换文本，直接改原文件
+awk '{print $1,$3}' access.log   #提取第1、3列
+wc -l access.log                 #统计行数
+sort file.txt                    #文本排序
+
+## 四、用户&权限
+useradd testuser
+passwd testuser                  #设置密码
+userdel -r testuser              #删除用户+家目录
+groupadd testgroup
+chmod 644 file.txt
+chmod +x run.sh                  #增加执行权限
+chown -R www:www /data/www       #递归修改属主属组
+su - testuser                    #切换用户加载环境
+sudo command                     #管理员执行
+
+## 五、进程与资源监控
+ps aux | grep nginx              #查看进程
+top                              #实时资源监控 P=CPU排序 M=内存
+free -h                          #内存&swap
+vmstat 1                         #每秒刷新系统状态
+lsof -i :80                      #查看80端口占用
+kill 1234                        #正常终止PID
+kill -9 1234                     #强制杀进程（慎用）
+killall nginx                    #按进程名杀死
+
+## 六、网络
+ip addr                          #查看网卡IP（替代ifconfig）
+ip route                         #查看路由
+ping -c4 baidu.com               #ping4次停止
+curl -I https://xxx.com          #只获取http响应头
+wget -O save.zip https://xxx/file.zip #下载文件
+ss -tulnp                        #查看监听端口（推荐替代netstat）
+traceroute baidu.com             #路由追踪
+
+## 七、软件包 dnf
+dnf makecache                    #重建源缓存
+dnf search nginx                 #搜索包
+dnf install nginx                #安装
+dnf remove nginx                 #卸载
+dnf update                       #全部更新
+dnf list installed               #列出已安装
+
+rpm -ivh xxx.rpm                 #本地rpm包安装
+rpm -qa | grep nginx             #查询已安装rpm包
+
+## 八、systemd 服务管理
+systemctl start nginx
+systemctl stop nginx
+systemctl restart nginx
+systemctl enable nginx           #开机自启
+systemctl disable nginx          #取消自启
+systemctl status nginx           #查看状态
+systemctl list-units --type=service #列出所有服务
+
+## 九、firewalld 防火墙
+firewall-cmd --state
+firewall-cmd --list-all
+firewall-cmd --add-port=80/tcp --permanent #永久放行端口
+firewall-cmd --reload            #重载规则（修改永久规则必执行）
+
+## 十、压缩解压
+# tar.gz 打包压缩
+tar -zcvf data.tar.gz /data
+# tar.gz解压
+tar -zxvf data.tar.gz
+
+zip -r pack.zip /data
+unzip pack.zip
+
+## 十一、定时任务 & 文件传输
+crontab -l                       #查看当前用户定时任务
+crontab -e                       #编辑定时任务
+crontab -r                       #清空定时任务
+
+history                          #历史命令
+!123                             #执行历史第123条命令
+export PATH=$PATH:/opt/bin       #临时环境变量
+
+scp local.txt root@192.168.1.10:/tmp/ #传文件到远端
+scp -r /data root@192.168.1.10:/data  #传目录
+rsync -av /data/ root@192.168.1.10:/data/ #增量同步
+
+## 十二、快捷键 & 符号速查
+Ctrl + c      终止当前命令
+Ctrl + l      清屏（clear）
+Tab           自动补全
+|             管道：前输出传给后命令 >覆盖 >>追加
+>  out.txt    输出覆盖写入文件
+>> out.txt    追加写入文件
+
+## 故障排查速查卡片
+#磁盘满
+df -h
+du -sh /*
+#端口占用
+ss -tulnp | grep 80
+lsof -i :80
+#查看服务日志
+journalctl -u nginx -f
+journalctl -u nginx --since "1 hour ago"
+#查看系统日志
+tail -f /var/log/messages
+#内核日志
+dmesg

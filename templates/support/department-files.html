@@ -1,0 +1,105 @@
+{% extends 'layouts/app.html' %}
+{% load pm_tags %}
+{% block title %}本部门资料文件{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fa fa-folder-open me-2 text-primary"></i>本部门资料文件</h1>
+    <div>
+        <a href="{% url 'support.upload-resource-file' %}" class="btn btn-outline-primary me-2">
+            <i class="fa fa-upload me-1"></i>上传资料文件</a>
+        <a href="{% url 'support.index' %}" class="btn btn-outline-secondary">
+            <i class="fa fa-arrow-left me-1"></i>返回支援中心</a>
+    </div>
+</div>
+
+<form method="GET" class="card mb-4">
+    <div class="card-body row g-3 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label small mb-0">文件名</label>
+            <input type="text" name="keyword" class="form-control form-control-sm" value="{{ request.GET.keyword|default:'' }}" placeholder="按文件名搜索">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small mb-0">分类</label>
+            <select name="category" class="form-select form-select-sm">
+                <option value="">全部分类</option>
+                {% for key, label in categories.items %}
+                <option value="{{ key }}" {% if request.GET.category == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-sm btn-primary me-1">筛选</button>
+            <a href="{% url 'support.department-files' %}" class="btn btn-sm btn-outline-secondary">重置</a>
+        </div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">资料文件列表</h5>
+        <span class="text-muted small">共 {{ files.paginator.count }} 个文件</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>文件名</th>
+                    <th>分类</th>
+                    <th>可见范围</th>
+                    <th>大小</th>
+                    <th>版本</th>
+                    <th>上传人</th>
+                    <th>上传时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for f in files %}
+            <tr>
+                <td>
+                    <a href="{% url 'file.preview-department' pk=f.id %}">
+                        <i class="fa fa-file-o me-2 text-muted"></i>{{ f.original_name }}
+                    </a>
+                </td>
+                <td><span class="badge bg-light text-dark border">{{ f.category_name }}</span></td>
+                <td>{{ f.visibility_name }}</td>
+                <td>{{ f.size|filesizeformat }}</td>
+                <td>v{{ f.version }}</td>
+                <td>{% if f.uploader %}{{ f.uploader.name }}{% else %}-{% endif %}</td>
+                <td>{{ f.created_at|date:'Y-m-d H:i' }}</td>
+                <td>
+                    <a href="{% url 'file.preview-department' pk=f.id %}" class="btn btn-sm btn-outline-info" title="预览">
+                        <i class="fa fa-eye"></i>
+                    </a>
+                    <a href="{% url 'file.download-department' pk=f.id %}" class="btn btn-sm btn-outline-secondary" title="下载">
+                        <i class="fa fa-download"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center text-muted py-4">暂无资料文件</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if files.has_other_pages %}
+    <div class="card-body">
+        <nav>
+            <ul class="pagination mb-0">
+                {% if files.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ files.previous_page_number }}{% if request.GET.keyword %}&keyword={{ request.GET.keyword|urlencode }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category|urlencode }}{% endif %}">&laquo;</a>
+                </li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ files.number }} / {{ files.paginator.num_pages }}</span></li>
+                {% if files.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ files.next_page_number }}{% if request.GET.keyword %}&keyword={{ request.GET.keyword|urlencode }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category|urlencode }}{% endif %}">&raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

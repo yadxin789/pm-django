@@ -1,0 +1,140 @@
+{% extends 'layouts/app.html' %}
+{% block title %}管理员首页{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h2>管理员首页</h2>
+        <p class="text-muted">管理系统核心数据统计</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-muted">用户总数</h5>
+                        <h3 class="text-primary">{{ userCount }}</h3>
+                    </div>
+                    <i class="fa fa-users fa-4x text-primary opacity-30"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-muted">部门总数</h5>
+                        <h3 class="text-success">{{ deptCount }}</h3>
+                    </div>
+                    <i class="fa fa-building fa-4x text-success opacity-30"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-muted">角色总数</h5>
+                        <h3 class="text-info">{{ roleCount }}</h3>
+                    </div>
+                    <i class="fa fa-key fa-4x text-info opacity-30"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-muted">任务总数</h5>
+                        <h3 class="text-warning">{{ taskCount }}</h3>
+                    </div>
+                    <i class="fa fa-tasks fa-4x text-warning opacity-30"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-muted">项目总数</h5>
+                        <h3 class="text-primary">{{ projectCount }}</h3>
+                    </div>
+                    <i class="fa fa-folder-open fa-4x text-primary opacity-30"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-muted">通知总数</h5>
+                        <h3 class="text-secondary">{{ notificationCount }}</h3>
+                    </div>
+                    <i class="fa fa-bell fa-4x text-secondary opacity-30"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>📈 项目状态分布</h5>
+            </div>
+            <div class="card-body">
+                <div id="statusChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ projectStatusData|json_script:"status-data" }}
+<script>
+$(document).ready(function() {
+    var statusChart = echarts.init(document.getElementById('statusChart'));
+    var statusData = JSON.parse(document.getElementById('status-data').textContent);
+
+    statusChart.setOption({
+        title: { text: '项目状态分布', left: 'center', top: 10 },
+        tooltip: { trigger: 'item', formatter: '{b}: {c} 个 ({d}%)' },
+        legend: { orient: 'horizontal', bottom: 0, itemGap: 15, textStyle: { fontSize: 11 } },
+        series: [{
+            name: '状态', type: 'pie', radius: ['45%', '75%'], center: ['50%', '45%'],
+            avoidLabelOverlap: true,
+            itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+            label: { show: true, formatter: '{b}: {c}', position: 'outside', distance: 10, fontSize: 11 },
+            labelLine: { show: true, length: 15, length2: 10 },
+            data: [
+                {value: statusData['正常结案'] || 0, name: '正常结案', itemStyle: {color: '#52c41a'}},
+                {value: statusData['延期结案'] || 0, name: '延期结案', itemStyle: {color: '#faad14'}},
+                {value: statusData['进行中'] || 0, name: '进行中', itemStyle: {color: '#1890ff'}},
+                {value: statusData['超期'] || 0, name: '超期', itemStyle: {color: '#ff4d4f'}},
+                {value: statusData['暂停'] || 0, name: '暂停', itemStyle: {color: '#722ed1'}},
+                {value: statusData['未开始'] || 0, name: '未开始', itemStyle: {color: '#8c8c8c'}}
+            ]
+        }]
+    });
+
+    window.addEventListener('resize', function() { statusChart.resize(); });
+});
+</script>
+{% endblock %}

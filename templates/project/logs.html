@@ -1,0 +1,36 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}项目日志{% endblock %}
+{% block content %}
+{% include 'project/partials/project-tabs.html' with project=project active_tab='logs' %}
+<div class="card mt-1">
+    <div class="card-header">
+        <h3 class="mb-0"><i class="fa fa-list-alt me-2 text-primary"></i>项目日志</h3>
+    </div>
+    <div class="card-body">
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>时间</th>
+            <th>操作人</th>
+            <th>操作</th>
+            <th>内容</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.created_at|date:'Y-m-d H:i' }}</td>
+            <td>{% if log.user %}{{ log.user.name }}{% else %}-{% endif %}</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.content }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if not logs %}
+<p class="text-center text-muted">暂无日志</p>
+{% endif %}
+    </div>
+</div>
+{% endblock %}

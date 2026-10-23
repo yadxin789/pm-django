@@ -1,0 +1,137 @@
+{% extends 'layouts/app.html' %}
+{% load pm_tags %}
+{% block title %}编辑项目模板{% endblock %}
+{% block content %}
+<h1 class="mb-4">编辑项目模板</h1>
+<form method="POST" action="{% url 'project-template.update' template.id %}" id="template-form">{% csrf_token %}
+    <div class="row g-3">
+        <div class="col-md-6"><label for="name" class="form-label">模板名称 *</label><input type="text" name="name" id="name" class="form-control" required value="{{ template.name }}"></div>
+        <div class="col-md-6"><label for="description" class="form-label">模板描述</label><input type="text" name="description" id="description" class="form-control" value="{{ template.description|default:'' }}"></div>
+    </div>
+    <div class="mt-4">
+        <h4>选择参与部门 <small class="text-muted">（勾选需要参与项目的部门）</small></h4>
+        <div class="card"><div class="card-body">
+            <div class="d-flex flex-wrap gap-3" id="dept-checkbox-container">
+                {% for dept_id, department in dept_map.items %}
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input dept-checkbox" type="checkbox" id="dept-check-{{ dept_id }}" name="selected_depts[]" value="{{ dept_id }}" {% if dept_id in selected_depts %}checked{% endif %} onchange="onDeptSelectionChange()">
+                    <label class="form-check-label" for="dept-check-{{ dept_id }}">{{ department.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllDepts()">全选</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="deselectAllDepts()">取消全选</button>
+            </div>
+        </div></div>
+    </div>
+    <div class="mt-4">
+        <h4>部门天数配置</h4>
+        <div class="card"><div class="card-body">
+            <p class="text-muted small mb-2">设置每个部门的天数。部门间串行执行，部门内任务并联同步执行（同部门任务起止日期相同）</p>
+            <div class="row g-3" id="dept-days-container">
+                {% for dept_id, department in dept_map.items %}
+                <div class="col-md-2 dept-days-wrapper" data-dept-id="{{ dept_id }}">
+                    <label class="form-label">{{ department.name }}</label>
+                    <div class="input-group"><input type="number" name="dept_days[{{ dept_id }}]" class="form-control dept-days-input" value="{% if dept_id in dept_days %}{{ dept_days|get_item:dept_id }}{% else %}5{% endif %}" min="1" data-dept-id="{{ dept_id }}"><span class="input-group-text">天</span></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div></div>
+    </div>
+    <div class="mt-4">
+        <h4>任务配置 <small class="text-muted">（部门内任务并联同步）</small></h4>
+        <div class="card"><div class="card-body">
+            <table class="table table-bordered table-striped" id="task-table">
+                <thead><tr><th style="width: 18%">任务类型</th><th style="width: 12%">部门</th><th style="width: 8%" class="text-center">选中</th><th style="width: 28%">执行人</th><th style="width: 28%">审核人</th></tr></thead>
+                <tbody id="task-body">
+                {% for type in task_types %}
+                    <tr class="task-row" data-task-index="{{ forloop.counter0 }}" data-dept-id="{{ type.department_id }}" data-task-type-id="{{ type.id }}">{% with key=type.id|stringformat:"s"|add:"-"|add:type.department_id|stringformat:"s" %}
+                        <td><input type="hidden" name="tasks[{{ forloop.counter0 }}][task_type_id]" value="{{ type.id }}">{{ type.name }}</td>
+                        <td><input type="hidden" name="tasks[{{ forloop.counter0 }}][department_id]" value="{{ type.department_id }}">{% if type.department %}{{ type.department.name }}{% endif %}</td>
+                        <td class="text-center"><input type="checkbox" name="tasks[{{ forloop.counter0 }}][enabled]" value="1" class="form-check-input task-enabled-checkbox" data-task-index="{{ forloop.counter0 }}" {% if type.department_id and enabled_map|get_item:key %}checked{% endif %} onchange="onTaskEnabledChange()"></td>
+                        <td><select name="tasks[{{ forloop.counter0 }}][executor_id]" class="form-control form-select-sm executor-select" data-dept-id="{{ type.department_id }}">
+                            <option value="">选择执行人</option>
+                            {% for user in executors %}<option value="{{ user.id }}" data-department="{{ user.department_id }}" {% if exec_map|get_item:key == user.id %}selected{% endif %}>{{ user.name }} ({% if user.department %}{{ user.department.name }}{% else %}-{% endif %} - {% if user.role %}{{ user.role.name }}{% else %}-{% endif %})</option>{% endfor %}
+                        </select></td>
+                        <td><select name="tasks[{{ forloop.counter0 }}][auditor_id]" class="form-control form-select-sm auditor-select" data-dept-id="{{ type.department_id }}">
+                            <option value="">选择审核人</option>
+                            {% for user in auditors %}<option value="{{ user.id }}" data-department="{{ user.department_id }}" {% if aud_map|get_item:key == user.id %}selected{% endif %}>{{ user.name }} ({% if user.department %}{{ user.department.name }}{% else %}-{% endif %} - {% if user.role %}{{ user.role.name }}{% else %}-{% endif %})</option>{% endfor %}
+                        </select></td>{% endwith %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div></div>
+        <div class="mt-4 card"><div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">任务总数量</label><input type="number" id="stats-task-count" class="form-control" readonly></div>
+                <div class="col-md-3"><label class="form-label">部门数量</label><input type="number" id="stats-dept-count" class="form-control" readonly></div>
+                <div class="col-md-3"><label class="form-label">项目总天数</label><input type="number" id="stats-total-days" class="form-control" readonly></div>
+            </div>
+        </div></div>
+    </div>
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'project-template.index' %}" class="btn btn-secondary">返回列表</a>
+        <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i>保存模板</button>
+    </div>
+</form>
+{{ dept_order_json|json_script:'dept-order-data' }}
+<script>
+(function () {
+    var deptOrderEl = document.getElementById('dept-order-data');
+    var deptOrder = deptOrderEl ? JSON.parse(deptOrderEl.textContent) : [];
+    function getSelectedDepts() { var s=[]; document.querySelectorAll('.dept-checkbox:checked').forEach(function(cb){s.push(cb.value);}); return s; }
+    function isTaskEnabled(i){ var c=document.querySelector('.task-enabled-checkbox[data-task-index="'+i+'"]'); return c&&c.checked; }
+    function calculateStats() {
+        var selected=getSelectedDepts(); var deptDays={};
+        document.querySelectorAll('.dept-days-input').forEach(function(inp){ deptDays[inp.dataset.deptId]=parseInt(inp.value)||1; });
+        var totalDays=0, visibleTaskCount=0;
+        deptOrder.forEach(function(deptId){
+            if(selected.indexOf(String(deptId))===-1) return;
+            totalDays += deptDays[deptId]||1;
+            document.querySelectorAll('.task-row[data-dept-id="'+deptId+'"]').forEach(function(row){
+                if(isTaskEnabled(row.dataset.taskIndex)) visibleTaskCount++;
+            });
+        });
+        document.getElementById('stats-task-count').value=visibleTaskCount;
+        document.getElementById('stats-dept-count').value=selected.length;
+        document.getElementById('stats-total-days').value=totalDays;
+    }
+    function onDeptSelectionChange() {
+        var selected=getSelectedDepts();
+        document.querySelectorAll('.dept-days-wrapper').forEach(function(w){ w.style.display = selected.indexOf(w.dataset.deptId)!==-1?'':'none'; });
+        document.querySelectorAll('.task-row').forEach(function(row){ row.style.display = selected.indexOf(row.dataset.deptId)!==-1?'':'none'; });
+        calculateStats();
+    }
+    window.onDeptSelectionChange = onDeptSelectionChange;
+    window.selectAllDepts = function(){ document.querySelectorAll('.dept-checkbox').forEach(function(cb){cb.checked=true;}); onDeptSelectionChange(); };
+    window.deselectAllDepts = function(){ document.querySelectorAll('.dept-checkbox').forEach(function(cb){cb.checked=false;}); onDeptSelectionChange(); };
+    window.onTaskEnabledChange = calculateStats;
+    document.getElementById('template-form').addEventListener('submit', function(e){
+        var selected=getSelectedDepts();
+        if(selected.length===0){ alert('请至少选择一个部门'); e.preventDefault(); return; }
+        var errs=[];
+        if(!document.getElementById('name').value.trim()) errs.push('请填写模板名称');
+        document.querySelectorAll('.task-row').forEach(function(row){
+            var deptId=row.dataset.deptId;
+            if(selected.indexOf(deptId)===-1) return;
+            if(!isTaskEnabled(row.dataset.taskIndex)) return;
+            var label=row.querySelector('td:first-child').innerText.trim();
+            var ex=row.querySelector('.executor-select'), au=row.querySelector('.auditor-select');
+            if(!ex.value) errs.push('任务「'+label+'」未选择执行人');
+            if(!au.value) errs.push('任务「'+label+'」未选择审核人');
+        });
+        if(errs.length){ alert(errs.join('\n')); e.preventDefault(); return; }
+    });
+    document.querySelectorAll('.executor-select, .auditor-select').forEach(function(sel){
+        var deptName = sel.closest('tr').querySelector('td:nth-child(2)').innerText.trim();
+        sel.querySelectorAll('option').forEach(function(opt){
+            if(opt.value==='') return;
+            opt.style.display = opt.textContent.indexOf(deptName)!==-1?'':'none';
+        });
+    });
+    onDeptSelectionChange();
+})();
+</script>
+{% endblock %}

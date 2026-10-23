@@ -1,0 +1,88 @@
+﻿{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}我的{{ status_label }}项目列表{% endblock %}
+{% block content %}
+<h1 class="mb-4">我的{{ status_label }}项目列表</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="name" class="form-label">项目名称</label>
+                <input type="text" name="name" id="name" class="form-control" value="{{ request.GET.name }}" placeholder="输入项目名称搜索">
+            </div>
+            <div class="col-md-2">
+                <label for="date_from" class="form-label">创建日期从</label>
+                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label for="date_to" class="form-label">创建日期至</label>
+                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2"><i class="fa fa-search me-1"></i>搜索</button>
+                <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fa fa-refresh me-1"></i>重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    {% if status_label == '逾期' %}<div class="card-header bg-danger text-white">
+    {% elif status_label == '进行中' %}<div class="card-header bg-warning text-white">
+    {% elif status_label == '已完成' %}<div class="card-header bg-success text-white">
+    {% elif status_label == '暂停' %}<div class="card-header bg-secondary text-white">
+    {% else %}<div class="card-header bg-primary text-white">{% endif %}
+        <h5 class="mb-0">{{ status_label }}项目 ({{ projects.paginator.count }})</h5>
+    </div>
+    <div class="card-body">
+        {% if projects %}
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>项目名称</th><th>编码</th><th>产品型号</th><th>进度</th><th>状态</th><th>开始日期</th>
+                    <th>{% if status_label == '已完成' %}完成日期{% elif status_label == '暂停' %}暂停日期{% else %}截止日期{% endif %}</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                <tr>
+                    <td><a href="{% url 'project.show' project.id %}">{{ project.name }}</a></td>
+                    <td>{{ project.code }}</td>
+                    <td>{{ project.product_model }}</td>
+                    <td>
+                        <div style="width: 120px; height: 20px; background-color: #e5e7eb; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle;">
+                            <div style="height: 100%; width: {% widthratio project.progress 100 100 %}%; background-color: {% if status_label == '逾期' %}#dc3545{% elif status_label == '已完成' %}#198754{% elif status_label == '暂停' %}#6c757d{% else %}#0d6efd{% endif %}; border-radius: 4px; transition: width 0.3s;"></div>
+                        </div>
+                        <small class="ms-1">{{ project.progress|floatformat:"0" }}%</small>
+                    </td>
+                    <td><span class="badge" style="background-color: {{ project.status|status_color }}; color: white;">{{ project.status|status_label:project }}</span></td>
+                    <td>{{ project.start_date|date:'Y-m-d' }}</td>
+                    <td>{% if status_label == '暂停' and project.paused_at %}{{ project.paused_at|date:'Y-m-d' }}{% else %}{{ project.end_date|date:'Y-m-d' }}{% endif %}</td>
+                    <td>
+                        <a href="{% url 'project.show' project.id %}" class="btn btn-sm btn-info">查看</a>
+                        {% if status_label == '暂停' and project.creator_id == request.user.id or status_label == '暂停' and request.user.is_admin %}
+                        <form action="{% url 'project.resume' project.id %}" method="POST" class="d-inline" onsubmit="return confirm('确定恢复该项目吗？')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success"><i class="fa fa-play"></i> 重启</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="d-flex justify-content-center mt-3">
+            {% if projects.has_previous %}
+            <a class="btn btn-sm btn-outline-secondary me-1" href="?page={{ projects.previous_page_number }}&name={{ request.GET.name }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">上一页</a>
+            {% endif %}
+            <span class="align-self-center mx-2">第 {{ projects.number }} / {{ projects.paginator.num_pages }} 页</span>
+            {% if projects.has_next %}
+            <a class="btn btn-sm btn-outline-secondary" href="?page={{ projects.next_page_number }}&name={{ request.GET.name }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">下一页</a>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">暂无{{ status_label }}的项目</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

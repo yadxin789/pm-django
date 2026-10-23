@@ -1,0 +1,192 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>得道未来研发项目管理系统 - {{ current_year }}年度概览</title>
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <script src="{% static 'js/echarts.min.js' %}"></script>
+    <style>
+        :root {
+            --primary-color: #667eea; --primary-dark: #5a6fd6; --secondary-color: #f093fb;
+            --accent-color: #f5576c; --success-color: #52c41a; --warning-color: #faad14;
+            --info-color: #1890ff; --bg-gradient-start: #667eea; --bg-gradient-end: #764ba2;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; min-height: 100vh; }
+        .hero-section { background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%); color: white; padding: 80px 0 100px; clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%); }
+        .hero-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 16px; }
+        .hero-subtitle { font-size: 1.1rem; opacity: 0.9; margin-bottom: 30px; }
+        .btn-primary-custom { background: white; color: var(--primary-color); border: none; padding: 12px 30px; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .btn-primary-custom:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); color: var(--primary-dark); }
+        .navbar { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 20px rgba(0,0,0,0.08); padding: 12px 0; position: sticky; top: 0; z-index: 1000; }
+        .navbar-brand { font-size: 1.25rem; font-weight: 600; color: var(--primary-color); }
+        .nav-link { color: #374151; font-weight: 500; margin-left: 20px; transition: color 0.3s ease; }
+        .nav-link:hover { color: var(--primary-color); }
+        .stat-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; border: none; }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+        .stat-icon.project { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-icon.completed { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .stat-icon.delayed { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }
+        .stat-icon.progress { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #1f2937; margin-bottom: 4px; }
+        .stat-label { font-size: 0.9rem; color: #6b7280; }
+        .chart-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: none; }
+        .chart-card .card-header { background: transparent; border-bottom: 1px solid #e5e7eb; padding: 20px 24px; }
+        .chart-card .card-title { font-size: 1.1rem; font-weight: 600; color: #1f2937; margin-bottom: 0; }
+        .chart-card .card-body { padding: 24px; }
+        .efficiency-card { background: white; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #e5e7eb; transition: all 0.3s ease; }
+        .efficiency-card:hover { border-color: var(--primary-color); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15); }
+        .efficiency-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 8px; }
+        .efficiency-label { font-size: 0.875rem; color: #6b7280; }
+        .footer { background: #1f2937; color: #9ca3af; padding: 40px 0; margin-top: 60px; }
+        .footer-links a { color: #9ca3af; margin-right: 20px; transition: color 0.3s ease; }
+        .footer-links a:hover { color: white; text-decoration: none; }
+        @media (max-width: 768px) { .hero-title { font-size: 1.75rem; } .stat-card { margin-bottom: 16px; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fa fa-bar-chart me-2"></i>得道未来研发项目管理系统</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="#overview">项目概览</a>
+                    <a class="nav-link" href="#charts">数据图表</a>
+                    <a class="nav-link" href="{% url 'login' %}"><i class="fa fa-sign-in me-1"></i>登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="hero-title">得道未来{{ current_year }}年度研发项目概览</h1>
+                    <p class="hero-subtitle">全面展示本年度所有研发项目的统计数据，包括项目趋势、状态分布和效率指标</p>
+                    <div class="flex-wrap gap-3">
+                        <a href="#overview" class="btn btn-primary-custom"><i class="fa fa-pie-chart me-2"></i>查看数据</a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg" style="border-color: rgba(255,255,255,0.5);"><i class="fa fa-user-circle me-2"></i>登录</a>
+                    </div>
+                </div>
+                <div class="col-lg-4 d-none d-lg-block">
+                    <div class="text-center">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+                            <div class="text-6xl mb-4">📊</div>
+                            <h3 class="text-xl font-semibold mb-2">{{ project_stats.total }}</h3>
+                            <p class="opacity-80">本年度项目总数</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="overview" class="py-16 bg-f8fafc">
+        <div class="container">
+            <div class="row mb-8">
+                <div class="col-md-12 text-center">
+                    <h2 class="text-2xl font-bold text-gray-900">项目统计概览</h2>
+                    <p class="text-gray-600 mt-2">实时掌握项目整体情况</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon project"><i class="fa fa-folder-open text-white fa-xl"></i></div><div class="stat-value text-primary">{{ project_stats.total }}</div><div class="stat-label">项目总数</div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon completed"><i class="fa fa-check-circle text-white fa-xl"></i></div><div class="stat-value text-success">{{ project_stats.completed_on_time }}</div><div class="stat-label">正常结案</div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon delayed"><i class="fa fa-clock text-white fa-xl"></i></div><div class="stat-value text-warning">{{ project_stats.completed_delayed }}</div><div class="stat-label">延期结案</div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon progress"><i class="fa fa-spinner text-white fa-xl"></i></div><div class="stat-value text-info">{{ project_stats.in_progress }}</div><div class="stat-label">进行中</div></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="charts" class="py-16 bg-white">
+        <div class="container">
+            <div class="row mb-8">
+                <div class="col-md-12 text-center">
+                    <h2 class="text-2xl font-bold text-gray-900">数据可视化</h2>
+                    <p class="text-gray-600 mt-2">直观展示项目趋势与分布</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-7">
+                    <div class="chart-card">
+                        <div class="card-header"><h5 class="card-title"><i class="fa fa-bar-chart me-2 text-primary"></i>月度项目数量趋势</h5></div>
+                        <div class="card-body"><div id="monthlyChart" style="height: 300px;"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="chart-card">
+                        <div class="card-header"><h5 class="card-title"><i class="fa fa-pie-chart me-2 text-primary"></i>项目状态分布</h5></div>
+                        <div class="card-body"><div id="statusChart" style="height: 300px;"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-8">
+                <div class="col-md-12">
+                    <div class="chart-card">
+                        <div class="card-header"><h5 class="card-title"><i class="fa fa-bolt me-2 text-primary"></i>效率指标</h5></div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3"><div class="efficiency-card"><div class="efficiency-value text-primary">{{ efficiency_stats.task_count }}</div><div class="efficiency-label">任务总数</div></div></div>
+                                <div class="col-md-3"><div class="efficiency-card"><div class="efficiency-value text-success">{{ efficiency_stats.completed_tasks }}</div><div class="efficiency-label">已完成任务</div></div></div>
+                                <div class="col-md-3"><div class="efficiency-card {% if efficiency_stats.overdue_tasks > 0 %}border-danger{% endif %}"><div class="efficiency-value {% if efficiency_stats.overdue_tasks > 0 %}text-danger{% else %}text-muted{% endif %}">{{ efficiency_stats.overdue_tasks }}</div><div class="efficiency-label {% if efficiency_stats.overdue_tasks > 0 %}text-danger{% endif %}">超期任务</div></div></div>
+                                <div class="col-md-3"><div class="efficiency-card"><div class="efficiency-value text-info">{{ efficiency_stats.task_completion_rate }}%</div><div class="efficiency-label">任务完成率</div></div></div>
+                            </div>
+                            <div class="row mt-4">
+                                <div class="col-md-4"><div class="efficiency-card"><div class="efficiency-value text-success">{{ efficiency_stats.on_time_completion_rate }}%</div><div class="efficiency-label">按时完成率</div></div></div>
+                                <div class="col-md-4"><div class="efficiency-card {% if efficiency_stats.overdue_rate > 20 %}border-danger{% endif %}"><div class="efficiency-value {% if efficiency_stats.overdue_rate > 20 %}text-danger{% else %}text-muted{% endif %}">{{ efficiency_stats.overdue_rate }}%</div><div class="efficiency-label {% if efficiency_stats.overdue_rate > 20 %}text-danger{% endif %}">超期率</div></div></div>
+                                <div class="col-md-4"><div class="efficiency-card"><div class="efficiency-value text-gray-700">{{ efficiency_stats.project_count }}</div><div class="efficiency-label">年度项目总数</div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6"><div class="footer-links"></div></div>
+                <div class="col-md-6 text-right"><p>得道未来© {{ current_year }} 研发项目管理系统. 保留所有权利.</p></div>
+            </div>
+        </div>
+    </footer>
+
+    {{ monthly_project_data|json_script:'monthly-data' }}
+    {{ project_status_data|json_script:'status-data' }}
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var monthlyChart = echarts.init(document.getElementById('monthlyChart'));
+            var months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            var monthlyData = JSON.parse(document.getElementById('monthly-data').textContent);
+            monthlyChart.setOption({
+                tooltip: { trigger: 'axis', backgroundColor: 'rgba(255, 255, 255, 0.95)', borderColor: '#e5e7eb', borderWidth: 1, textStyle: { color: '#374151' }, formatter: function(params) { return '<strong>' + params[0].axisValue + '</strong><br/>项目数量: <strong>' + params[0].value + '</strong>'; } },
+                grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+                xAxis: { type: 'category', data: months, axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280' } },
+                yAxis: { type: 'value', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280' } },
+                series: [{ name: '项目数量', type: 'bar', data: Object.values(monthlyData), barWidth: '50%', itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: '#667eea'}, {offset: 1, color: '#764ba2'}]), borderRadius: [6, 6, 0, 0] }, emphasis: { itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: '#5a6fd6'}, {offset: 1, color: '#6b42a0'}]) } } }]
+            });
+            var statusChart = echarts.init(document.getElementById('statusChart'));
+            var statusData = JSON.parse(document.getElementById('status-data').textContent);
+            statusChart.setOption({
+                tooltip: { trigger: 'item', backgroundColor: 'rgba(255, 255, 255, 0.95)', borderColor: '#e5e7eb', borderWidth: 1, textStyle: { color: '#374151' }, formatter: '{b}: {c} 个 ({d}%)' },
+                legend: { orient: 'horizontal', bottom: 0, itemGap: 15, textStyle: { color: '#6b7280', fontSize: 11 } },
+                series: [{ name: '状态', type: 'pie', radius: ['45%', '75%'], center: ['50%', '45%'], avoidLabelOverlap: true, itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 3 }, label: { show: true, formatter: '{b}: {c}', position: 'outside', distance: 8, fontSize: 11 }, emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold', formatter: '{b}\n{d}%' } }, labelLine: { show: true, length: 12, length2: 8 }, data: [
+                    {value: statusData['正常结案'] || 0, name: '正常结案', itemStyle: {color: '#52c41a'}},
+                    {value: statusData['延期结案'] || 0, name: '延期结案', itemStyle: {color: '#faad14'}},
+                    {value: statusData['进行中'] || 0, name: '进行中', itemStyle: {color: '#1890ff'}},
+                    {value: statusData['暂停'] || 0, name: '暂停', itemStyle: {color: '#722ed1'}}
+                ]}]
+            });
+            window.addEventListener('resize', function() { monthlyChart.resize(); statusChart.resize(); });
+        });
+    </script>
+</body>
+</html>

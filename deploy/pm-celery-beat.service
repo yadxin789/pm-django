@@ -1,0 +1,35 @@
+[Unit]
+Description=PM Django Celery Beat (定时调度)
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=pm
+Group=pm
+WorkingDirectory=/var/www/pm-django
+EnvironmentFile=-/var/www/pm-django/.env
+Environment=DJANGO_SETTINGS_MODULE=pm.settings
+# DatabaseScheduler 只读取库里的 PeriodicTask；由 `manage.py seed_beat`
+# 从 pm/celery.py 的 BEAT_SCHEDULES 同步而来（唯一的调度来源）。
+ExecStart=/var/www/pm-django/venv/bin/celery -A pm beat \
+    --loglevel=info \
+    --scheduler django_celery_beat.schedulers:DatabaseScheduler
+Restart=always
+RestartSec=3
+
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateDevices=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryDenyWriteExecute=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

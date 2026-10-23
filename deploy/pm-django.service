@@ -1,0 +1,44 @@
+[Unit]
+Description=PM Django Gunicorn (得道未来研发项目管理系统)
+After=network.target mysqld.service redis.service
+Wants=mysqld.service redis.service
+
+[Service]
+Type=simple
+# 不要以 root 运行 Web 服务：deploy.sh 会创建同名的系统账号 pm 并 chown 部署目录
+User=pm
+Group=pm
+WorkingDirectory=/var/www/pm-django
+EnvironmentFile=-/var/www/pm-django/.env
+ExecStart=/var/www/pm-django/venv/bin/gunicorn pm.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers 3 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile /var/www/pm-django/logs/gunicorn-access.log \
+    --error-logfile /var/www/pm-django/logs/gunicorn-error.log
+Restart=always
+RestartSec=3
+KillMode=mixed
+
+# systemd 沙箱加固：只读系统目录、隔离临时目录、禁止提权与执行可写内存页
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateDevices=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryDenyWriteExecute=true
+LockPersonality=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

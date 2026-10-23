@@ -1,0 +1,58 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}{% load static %}
+{% block title %}更换头像{% endblock %}
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">更换头像</h1>
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-4">
+                <div>
+                    {% if user.avatar %}
+                    <img src="{% if user.avatar|startswith:'defaults/' %}/static/avatars/{{ user.avatar }}{% else %}/media/avatars/{{ user.avatar }}{% endif %}" alt="当前头像" class="rounded-circle" style="width: 90px; height: 90px; object-fit: cover; border: 2px solid #e9ecef;">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center rounded-circle bg-secondary text-white" style="width: 90px; height: 90px; font-size: 36px;"><span>{{ user.name|slice:'0:1' }}</span></div>
+                    {% endif %}
+                </div>
+                <div class="ms-3">
+                    <h5 class="mb-1">当前头像</h5>
+                    <p class="text-muted mb-0">支持 jpeg、png、jpg、gif 格式，大小不超过 2MB</p>
+                </div>
+            </div>
+            <form method="POST" action="{% url 'profile.avatar.upload' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="avatar" class="form-label">选择新头像</label>
+                    <input type="file" class="form-control" id="avatar" name="avatar" accept="image/jpeg,image/png,image/jpg,image/gif">
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> 上传头像</button>
+                    <a href="{% url 'profile.edit' %}" class="btn btn-outline-secondary">返回</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header"><h3 class="card-title mb-0">默认头像仓库</h3></div>
+        <div class="card-body">
+            <p class="text-muted mb-3">选择一个默认头像作为您的新头像：</p>
+            <div class="row">
+                {% for av in default_avatars %}
+                <div class="col-4 col-md-3 mb-3 text-center">
+                    <form action="{% url 'profile.avatar.upload' %}" method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="default_avatar" value="defaults/{{ av }}">
+                        <img src="{% static 'avatars/defaults/' %}{{ av }}" alt="默认头像{{ forloop.counter }}"
+                             class="img-thumbnail rounded-circle mb-2 default-avatar"
+                             style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;"
+                             onclick="this.parentElement.submit()">
+                        <br>
+                        <small class="text-muted">头像{{ forloop.counter }}</small>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

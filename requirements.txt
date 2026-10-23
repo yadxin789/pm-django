@@ -1,0 +1,52 @@
+# 得道未来 PM 项目管理系统（Django 迁移版）依赖清单
+#
+# 本文件由线上服务器 /var/www/pm-django/venv 的 `pip freeze` 导出，
+# 与线上环境逐包对齐（含传递依赖），请勿手工精简或漏项，否则本地与线上会出现漂移。
+#
+# 在线安装：venv/bin/pip install -r requirements.txt
+# 离线安装（服务器无外网时，wheel 包已预置在 /opt/pm-offline/wheels）：
+#     venv/bin/pip install --no-index --find-links=/opt/pm-offline/wheels -r requirements.txt
+#
+# 注意：whitenoise 是部署时必须装的（settings.py 的 MIDDLEWARE 里已启用），
+#       本地开发忘记安装会导致 `manage.py runserver` 启动即报 ModuleNotFoundError。
+
+amqp==5.4.1
+asgiref==3.12.1
+billiard==4.3.1
+celery==5.6.3
+certifi==2026.7.22
+charset-normalizer==3.5.2
+click==8.5.0
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.4.1
+cron-descriptor==1.4.5
+Django==5.2.17
+django-celery-beat==2.9.0
+django-timezone-field==7.2.2
+et_xmlfile==2.0.0
+gunicorn==23.0.0
+idna==3.20
+kombu==5.6.2
+Markdown==3.11
+openpyxl==3.1.5
+packaging==26.3
+pillow==12.3.0
+prompt_toolkit==3.0.53
+pycryptodome==3.24.0
+PyJWT==2.15.1
+PyMySQL==1.2.3
+python-crontab==3.4.0
+python-dateutil==2.9.0.post0
+redis==5.2.1
+requests==2.34.2
+six==1.17.0
+sqlparse==0.6.0
+typing_extensions==4.16.0
+tzdata==2026.5
+tzlocal==5.4.4
+urllib3==2.8.0
+vine==5.1.0
+websockets==13.1
+wcwidth==0.9.2
+whitenoise==6.12.0

@@ -1,0 +1,231 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block content %}
+{% include 'project/partials/project-tabs.html' with project=project active_tab='chat' %}
+<div class="container-fluid mt-1 px-0">
+    <div class="row no-gutters" style="height: calc(100vh - 200px);">
+        <div class="col-md-3 col-lg-2 px-0 overflow-hidden" style="border-right: 1px solid #dee2e6; background: #f8f9fa; display: flex; flex-direction: column; max-height: calc(100vh - 200px);">
+            <div class="p-3 border-bottom bg-white">
+                <h6 class="mb-0 text-truncate" title="{{ project.name }}"><i class="fa fa-folder mr-1 text-primary"></i>{{ project.name }}</h6>
+            </div>
+            <div class="member-item p-3 border-bottom d-flex align-items-center cursor-pointer active-chat" id="group-chat-btn" onclick="switchToGroupChat()" style="background: #e3f2fd;">
+                <div class="position-relative mr-3">
+                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px; font-size: 16px;"><i class="fa fa-users"></i></div>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="font-weight-bold" style="font-size: 14px;">项目群聊</div>
+                    <div class="text-muted" style="font-size: 12px;">全体成员</div>
+                </div>
+            </div>
+            <div class="px-3 py-2 border-bottom" style="font-size: 12px; color: #999;">项目成员</div>
+            <div class="flex-grow-1 overflow-y-auto" id="member-list" style="scrollbar-width: thin; scrollbar-color: #ced4da #f1f3f4;">
+                <div class="text-center py-4 text-muted" style="font-size: 13px;"><i class="fa fa-spinner fa-spin"></i> 加载中...</div>
+            </div>
+        </div>
+
+        <div class="col-md-9 col-lg-10 px-0 d-flex flex-column" style="height: 100%;">
+            <div id="group-chat-panel" class="d-flex flex-column" style="height: 100%;">
+                <div class="p-3 border-bottom bg-white d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0"><i class="fa fa-comments mr-2 text-primary"></i>{{ project.name }} - 聊天室</h5>
+                    <form action="{% url 'messages.clear-mine' project.id %}" method="POST" class="mb-0" onsubmit="return confirm('确定清空你的群聊留言板吗？此操作只清空你自己的显示记录，不影响其他用户。')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa fa-trash mr-1"></i>清空我的留言板</button>
+                    </form>
+                </div>
+                <div class="flex-grow-1 overflow-auto p-3" style="background-color: #f5f5f5;" id="group-messages">
+                    {% if not chat_messages %}
+                    <div class="text-center text-muted py-5"><i class="fa fa-comments-o fa-4x mb-3"></i><p>暂无聊天记录，快来开始聊天吧！</p></div>
+                    {% else %}
+                    <div class="chat-container">
+                        {% for message in chat_messages %}
+                        {% with is_my=message.user_id|stringformat:'s' %}{% endwith %}
+                        <div class="chat-message {% if message.user_id == request.user.id %}my-message{% else %}other-message{% endif %}">
+                            <div class="message-avatar">
+                                {% if message.user.avatar %}
+                                <img src="{% if message.user.avatar|startswith:'defaults/' %}/static/avatars/{{ message.user.avatar }}{% else %}/media/avatars/{{ message.user.avatar }}{% endif %}" alt="{{ message.user.username }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                {% else %}
+                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px; font-size: 16px;"><span>{{ message.user.username|slice:'0:1' }}</span></div>
+                                {% endif %}
+                            </div>
+                            <div class="message-content">
+                                <div class="message-info">
+                                    <span class="message-username">{{ message.user.username }}</span>
+                                    <span class="message-time">{{ message.created_at|date:'H:i' }}</span>
+                                </div>
+                                {% if message.content %}<div class="message-bubble">{{ message.content }}</div>{% endif %}
+                                {% if message.file_path %}
+                                <div class="file-attachment" data-file-url="{% url 'messages.file' message.id %}" data-file-name="{{ message.file_name }}" ondblclick="previewFile(this)" oncontextmenu="downloadFile(event, this)">
+                                    <i class="fa fa-file mr-2"></i><span>{{ message.file_name }}</span>
+                                </div>
+                                {% endif %}
+                                {% if request.user.is_admin %}
+                                <form action="{% url 'messages.destroy' project.id message.id %}" method="POST" class="mt-1">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-xs btn-outline-danger" onclick="return confirm('确定要删除这条聊天吗？')"><i class="fa fa-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="p-3 border-top bg-white position-relative">
+                    <form action="{% url 'messages.store' project.id %}" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <button type="button" class="btn btn-sm px-4 mr-4" id="emoji-btn" title="表情" style="background-color: #ffc107; color: #212529; border-color: #ffc107;"><i class="fa fa-smile-o mr-1"></i>表情</button>
+                                <label class="btn btn-sm px-4 mb-0" title="发送文件" style="cursor: pointer; background-color: #17a2b8; color: white; border-color: #17a2b8;">
+                                    <i class="fa fa-paperclip mr-1"></i>文件
+                                    <input type="file" name="file" id="group-file-input" style="display: none;" onchange="handleGroupFileSelect(event)">
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm px-4"><i class="fa fa-send mr-1"></i>发送</button>
+                        </div>
+                        <div class="border rounded" style="background-color: #fff;">
+                            <div id="group-file-preview-area" class="p-2 border-bottom" style="display: none;">
+                                <div class="d-flex align-items-center" style="font-size: 13px;">
+                                    <i class="fa fa-file mr-2 text-primary"></i><span id="group-file-preview-name" class="flex-grow-1"></span>
+                                    <button type="button" class="btn btn-xs btn-outline-danger border-0" onclick="clearGroupFile()"><i class="fa fa-times"></i></button>
+                                </div>
+                            </div>
+                            <div class="d-flex">
+                                <textarea name="content" class="form-control form-control-sm border-0" rows="2" placeholder="输入消息..." id="chat-input" style="resize: none; box-shadow: none;"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="emoji-panel mt-2" id="emoji-panel" style="display: none;">
+                        <div class="emoji-grid">
+                            {% for emoji in emojis %}<span class="emoji-item" onclick="insertGroupChatEmoji('{{ emoji }}')">{{ emoji }}</span>{% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .chat-container { padding: 0; }
+    .chat-message { display: flex; margin-bottom: 16px; align-items: flex-start; }
+    .chat-message.other-message { flex-direction: row; }
+    .chat-message.my-message { flex-direction: row-reverse; }
+    .message-avatar { flex-shrink: 0; }
+    .chat-message.other-message .message-avatar { margin-right: 8px; }
+    .chat-message.my-message .message-avatar { margin-left: 8px; }
+    .message-content { max-width: 65%; }
+    .message-info { display: flex; align-items: center; margin-bottom: 3px; font-size: 11px; color: #999; }
+    .chat-message.other-message .message-info { justify-content: flex-start; }
+    .chat-message.my-message .message-info { justify-content: flex-end; }
+    .message-username { font-weight: 600; margin-right: 6px; }
+    .message-time { font-size: 10px; }
+    .message-bubble { padding: 8px 14px; border-radius: 8px; word-wrap: break-word; line-height: 1.5; position: relative; font-size: 14px; }
+    .chat-message.other-message .message-bubble { background-color: #fff; border: 1px solid #e8e8e8; }
+    .chat-message.my-message .message-bubble { background-color: #95ec69; border: 1px solid #86d65d; }
+    .member-item { transition: background-color 0.15s ease; }
+    .member-item:hover { background-color: #e9ecef; }
+    .member-item.active-chat { background: #e3f2fd !important; border-left: 3px solid #1976d2; }
+    .member-item .online-dot { width: 10px; height: 10px; border-radius: 50%; position: absolute; bottom: 0; right: 0; border: 2px solid #fff; }
+    .online-dot.online { background-color: #4caf50; }
+    .online-dot.offline { background-color: #bdbdbd; }
+    #member-list::-webkit-scrollbar, #group-messages::-webkit-scrollbar { width: 6px; height: 6px; }
+    #member-list::-webkit-scrollbar-track, #group-messages::-webkit-scrollbar-track { background: #f1f3f4; border-radius: 3px; }
+    #member-list::-webkit-scrollbar-thumb, #group-messages::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 3px; }
+    #member-list::-webkit-scrollbar-thumb:hover, #group-messages::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+    .file-attachment { display: flex; align-items: center; padding: 8px 12px; background: rgba(0,0,0,0.05); border-radius: 6px; margin-top: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s ease; }
+    .file-attachment:hover { background: rgba(0,0,0,0.1); }
+    .file-attachment.selected { background: #e3f2fd; border: 1px solid #90caf9; }
+    .file-attachment i { color: #1976d2; }
+    .emoji-panel { background-color: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px; max-height: 180px; overflow-y: auto; position: absolute; bottom: 100%; left: 0; right: 0; z-index: 1000; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); }
+    .emoji-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    .emoji-item { font-size: 22px; cursor: pointer; text-align: center; padding: 4px; border-radius: 4px; transition: background-color 0.15s; }
+    .emoji-item:hover { background-color: #f0f0f0; }
+    @media (max-width: 768px) { .col-md-3 { display: none; } .col-md-9 { flex: 0 0 100%; max-width: 100%; } }
+</style>
+
+<script>
+let membersData = [];
+let pollTimer = null;
+const PROJECT_ID = {{ project.id }};
+
+function startPolling() { if (pollTimer) return; pollTimer = setInterval(loadMembers, 10000); }
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+document.addEventListener('visibilitychange', function() { if (document.hidden) { stopPolling(); } else { loadMembers(); startPolling(); } });
+window.addEventListener('beforeunload', function() { stopPolling(); });
+document.addEventListener('DOMContentLoaded', function() {
+    loadMembers(); startPolling();
+    const g = document.getElementById('group-messages'); if (g) g.scrollTop = g.scrollHeight;
+    const eb = document.getElementById('emoji-btn'); const ep = document.getElementById('emoji-panel');
+    if (eb && ep) {
+        eb.addEventListener('click', function(e) { e.stopPropagation(); ep.style.display = ep.style.display === 'none' ? 'block' : 'none'; });
+        document.addEventListener('click', function(e) { if (!eb.contains(e.target) && !ep.contains(e.target)) ep.style.display = 'none'; });
+    }
+});
+
+function loadMembers() {
+    fetch('/api/project/' + PROJECT_ID + '/chat/members').then(r => r.json()).then(data => {
+        if (data.members) { membersData = data.members; renderMemberList(data.members); }
+    }).catch(err => console.error('加载成员失败:', err));
+}
+function renderMemberList(members) {
+    const container = document.getElementById('member-list');
+    if (members.length === 0) { container.innerHTML = '<div class="text-center py-4 text-muted" style="font-size: 13px;">暂无成员</div>'; return; }
+    members.sort((a, b) => { if (a.is_me) return 1; if (b.is_me) return -1; return b.is_online - a.is_online; });
+    let html = '';
+    members.forEach(member => {
+        if (member.is_me) return;
+        const onlineClass = member.is_online ? 'online' : 'offline';
+        const onlineText = member.is_online ? '在线' : '离线';
+        html += '<div class="member-item p-3 border-bottom d-flex align-items-center" role="button" tabindex="0" aria-label="与 ' + escapeHtml(member.username) + ' 私聊" onclick="openPrivateChat(' + member.id + ')" style="cursor: pointer;">';
+        html += '<div class="position-relative mr-3">';
+        html += member.avatar
+            ? '<img src="' + escapeHtml(member.avatar) + '" class="rounded-circle" alt="' + escapeHtml(member.username) + '" style="width: 40px; height: 40px; object-fit: cover; ' + (member.is_online ? '' : 'filter: grayscale(100%); opacity: 0.5;') + '">'
+            : '<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px; font-size: 16px; ' + (member.is_online ? '' : 'opacity: 0.5;') + '">' + escapeHtml(member.username.charAt(0)) + '</div>';
+        html += '<span class="online-dot ' + onlineClass + '"></span></div>';
+        html += '<div class="flex-grow-1 min-width-0"><div class="font-weight-bold" style="font-size: 14px;">' + escapeHtml(member.username) + '</div><div class="text-muted" style="font-size: 12px;">' + onlineText + '</div></div></div>';
+    });
+    container.innerHTML = html;
+}
+function openPrivateChat(targetId) { window.location.href = '/project/' + PROJECT_ID + '/chat/' + targetId; }
+function handleGroupFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { alert('文件大小不能超过 20MB'); event.target.value = ''; return; }
+    document.getElementById('group-file-preview-name').textContent = file.name;
+    document.getElementById('group-file-preview-area').style.display = 'block';
+}
+function clearGroupFile() { document.getElementById('group-file-input').value = ''; document.getElementById('group-file-preview-area').style.display = 'none'; }
+function previewFile(element) {
+    const fileUrl = element.dataset.fileUrl; const fileName = element.dataset.fileName;
+    const ext = fileName.split('.').pop().toLowerCase();
+    const docs = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt']; const imgs = ['jpg','jpeg','png','gif','bmp','svg','webp'];
+    if (docs.includes(ext)) { window.open(fileUrl, '_blank'); }
+    else if (imgs.includes(ext)) { showImagePreview(fileUrl, fileName); }
+}
+function downloadFile(event, element) {
+    event.preventDefault();
+    const fileUrl = element.dataset.fileUrl; const fileName = element.dataset.fileName;
+    const downloadUrl = fileUrl + (fileUrl.includes('?') ? '&' : '?') + 'download=1';
+    const link = document.createElement('a'); link.href = downloadUrl; link.download = fileName;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+function showImagePreview(src, title) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; cursor: pointer;';
+    const img = document.createElement('img'); img.src = src; img.title = title;
+    img.style.cssText = 'max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px;';
+    const closeBtn = document.createElement('div'); closeBtn.innerHTML = '<i class="fa fa-times" style="color: white; font-size: 24px;"></i>';
+    closeBtn.style.cssText = 'position: absolute; top: 20px; right: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;';
+    overlay.appendChild(img); overlay.appendChild(closeBtn); document.body.appendChild(overlay);
+    overlay.addEventListener('click', () => { document.body.removeChild(overlay); });
+}
+function insertGroupChatEmoji(emoji) {
+    const input = document.getElementById('chat-input');
+    const start = input.selectionStart; const end = input.selectionEnd;
+    input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
+    input.selectionStart = input.selectionEnd = start + emoji.length; input.focus();
+}
+function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+</script>
+{% endblock %}

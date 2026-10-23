@@ -1,0 +1,61 @@
+/* Bootstrap 样式已通过 layouts/app.blade.php 中的 bootstrap.min.css 加载 */
+
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+}
+
+.card {
+    margin-bottom: 20px;
+}
+
+.table {
+    font-size: 14px;
+}
+
+.badge {
+    font-size: 12px;
+}
+
+.progress {
+    margin-bottom: 0;
+}
+
+.btn-sm {
+    margin-right: 5px;
+}
+
+.list-group-item {
+    margin-bottom: 10px;
+    border-radius: 0.25rem;
+}
+
+.form-check-label {
+    margin-left: 5px;
+}
+
+.float-right {
+    float: right;
+}
+
+.text-muted {
+    color: #6c757d;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+.navbar {
+    margin-bottom: 20px;
+}
+
+.container {
+    min-height: calc(100vh - 150px);
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    margin-top: 20px;
+}

@@ -1,0 +1,7 @@
+{% extends 'layouts/app.html' %}
+{% block title %}资料文件{% endblock %}
+{% block content %}
+<h1 class="mb-4">资料文件</h1>
+<a href="{% url 'file.upload-department' %}" class="btn btn-primary mb-4">上传资料文件</a>
+{% include 'file/partials/resource-file-tabs.html' with category_files=category_files tab_id_prefix='resource-files' can_manage=False %}
+{% endblock %}

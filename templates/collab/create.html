@@ -1,0 +1,101 @@
+{% extends 'layouts/app.html' %}
+{% block title %}新建文档 - {{ project.name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">新建文档</h1>
+        <a href="{% url 'project.collab.index' project.id %}" class="btn btn-outline-secondary"><i class="fa fa-arrow-left me-2"></i>返回协同办公</a>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0"><i class="fa fa-file-o me-2"></i>从内置模板新建</h5></div>
+                <div class="card-body">
+                    <p class="text-muted">基于系统内置模板创建空白文档，创建后直接进入协同编辑。</p>
+                    <form method="POST" action="{% url 'project.collab.store' project.id %}">{% csrf_token %}
+                        <input type="hidden" name="mode" value="template">
+                        <div class="mb-3"><label class="form-label">文档名称</label><input type="text" name="name" class="form-control" placeholder="例如：项目需求文档" maxlength="80" required></div>
+                        <div class="mb-3"><label class="form-label">文档类型</label>
+                            <div class="row text-center">
+                                <div class="col-4"><label class="btn btn-outline-primary w-100 template-option" style="cursor:pointer;"><input type="radio" name="extension" value="docx" class="d-none" checked><i class="fa fa-file-word-o" style="font-size: 28px;"></i><div class="small mt-1">Word 文档</div></label></div>
+                                <div class="col-4"><label class="btn btn-outline-success w-100 template-option" style="cursor:pointer;"><input type="radio" name="extension" value="xlsx" class="d-none"><i class="fa fa-file-excel-o" style="font-size: 28px;"></i><div class="small mt-1">Excel 表格</div></label></div>
+                                <div class="col-4"><label class="btn btn-outline-danger w-100 template-option" style="cursor:pointer;"><input type="radio" name="extension" value="pptx" class="d-none"><i class="fa fa-file-powerpoint-o" style="font-size: 28px;"></i><div class="small mt-1">PPT 演示</div></label></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-check me-2"></i>创建并编辑</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0"><i class="fa fa-upload me-2"></i>上传现有文档</h5></div>
+                <div class="card-body">
+                    <p class="text-muted">上传 docx / xlsx / pptx 文件（不超过 20MB），上传后即可协同编辑。</p>
+                    <form method="POST" action="{% url 'project.collab.store' project.id %}" enctype="multipart/form-data">{% csrf_token %}
+                        <input type="hidden" name="mode" value="upload">
+                        <div class="mb-3"><label class="form-label">文档名称</label><input type="text" name="name" class="form-control" placeholder="例如：产品需求规格书" maxlength="80" required></div>
+                        <div class="mb-3"><label class="form-label">选择文件</label><input type="file" name="file" class="form-control" accept=".docx,.xlsx,.pptx" required></div>
+                        <button type="submit" class="btn btn-success"><i class="fa fa-upload me-2"></i>上传并编辑</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    /* 文档类型选择器：未选中 = 灰底灰字；hover 边框显色；选中 = 实心彩色 + 白字（单选互斥） */
+    .template-option {
+        border: 2px solid #ced4da !important;
+        background-color: #eef1f3 !important;
+        color: #6c757d !important;
+        opacity: .75;
+        transition: all .15s ease-in-out;
+    }
+    .template-option i { color: #868e96 !important; }
+    .template-option:hover {
+        transform: translateY(-1px);
+        opacity: 1;
+    }
+    .template-option.btn-outline-primary:hover { border-color: #0d6efd !important; }
+    .template-option.btn-outline-success:hover { border-color: #198754 !important; }
+    .template-option.btn-outline-danger:hover  { border-color: #dc3545 !important; }
+
+    .template-option.active {
+        opacity: 1;
+    }
+    .template-option.active.btn-outline-primary {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    }
+    .template-option.active.btn-outline-success {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+        color: #fff !important;
+        box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.25);
+    }
+    .template-option.active.btn-outline-danger {
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: #fff !important;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+    }
+    .template-option.active i { color: #fff !important; }
+</style>
+<script>
+    // 单选互斥：任一 radio 变化时同步所有按钮的 active 状态
+    var options = document.querySelectorAll('.template-option');
+    function syncAll() {
+        options.forEach(function (label) {
+            var input = label.querySelector('input[type="radio"]');
+            label.classList.toggle('active', input.checked);
+        });
+    }
+    options.forEach(function (label) {
+        label.querySelector('input[type="radio"]').addEventListener('change', syncAll);
+    });
+    syncAll();
+</script>
+{% endblock %}

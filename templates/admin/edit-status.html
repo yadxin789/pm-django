@@ -1,0 +1,15 @@
+{% extends 'layouts/app.html' %}
+{% block title %}编辑状态标签{% endblock %}
+{% block content %}
+<h1 class="mb-4">编辑状态标签</h1>
+<div class="card"><div class="card-body">
+<form method="POST" action="{% url 'admin.statuses.update' status.id %}">{% csrf_token %}
+<table class="table table-bordered form-table mb-0">
+<tr><td class="form-table-label">状态机类名</td><td><code>{{ status.state_class }}</code></td></tr>
+<tr><td class="form-table-label">自定义标签</td><td><input name="custom_label" class="form-control" value="{{ status.custom_label|default:'' }}" placeholder="留空则显示默认标签"></td></tr>
+</table>
+<div class="pt-3"><button class="btn btn-primary"><i class="fa fa-check"></i> 保存</button> <a href="{% url 'admin.statuses' %}" class="btn btn-outline-secondary">返回</a></div>
+</form>
+</div></div>
+<style>.form-table td{padding:12px 16px!important;vertical-align:middle}.form-table-label{width:130px;background-color:#f8f9fa!important;font-weight:600}</style>
+{% endblock %}

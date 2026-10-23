@@ -1,0 +1,86 @@
+{% extends 'layouts/app.html' %}{% load pm_tags %}
+{% block title %}变更项目{% endblock %}
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">变更项目 - {{ project.name }}</h3>
+            </div>
+            <div class="card-body">
+                {% if form_errors %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in form_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form action="{% url 'project.update_change' project.id %}" method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">项目基本信息</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">项目名称 <span class="text-danger">*</span></label>
+                                <input type="text" name="name" id="name" class="form-control" value="{{ project.name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="code" class="form-label">项目编号</label>
+                                <input type="text" name="code" id="code" class="form-control" value="{{ project.code }}" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="product_name" class="form-label">产品名称 <span class="text-danger">*</span></label>
+                                <input type="text" name="product_name" id="product_name" class="form-control" value="{{ project.product_name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="product_model" class="form-label">产品型号 <span class="text-danger">*</span></label>
+                                <input type="text" name="product_model" id="product_model" class="form-control" value="{{ project.product_model }}" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_date" class="form-label">开始日期 <span class="text-danger">*</span></label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ project.start_date|date:'Y-m-d' }}" required>
+                                <small class="text-muted">修改会重新计算所有任务日期</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">项目截止日期（自动计算）</label>
+                                <input type="text" class="form-control" value="{{ project.end_date|date:'Y-m-d' }}" disabled>
+                                <small class="text-muted">将由各部门天数自动计算</small>
+                            </div>
+                        </div>
+                        <h6 class="mt-3">各部门所需天数</h6>
+                        <div class="row mb-3">
+                            {% for dept in participating_depts %}
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">{{ dept.name }} <small>(原{{ dept_days|get_item:dept.id }}天)</small></label>
+                                <input type="number" name="dept_days[{{ dept.id }}]" class="form-control" value="{{ dept_days|get_item:dept.id }}" min="1" required>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">变更说明</h5>
+                        <div class="mb-3">
+                            <label for="change_reason" class="form-label">变更原因 <span class="text-danger">*</span></label>
+                            <textarea name="change_reason" id="change_reason" class="form-control" rows="3" placeholder="请详细说明本次变更的原因..." required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-save me-2"></i>提交变更</button>
+                        <a href="{% url 'project.show' project.id %}" class="btn btn-secondary"><i class="fa fa-times me-2"></i>取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

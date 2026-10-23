@@ -1,0 +1,16 @@
+{% extends 'layouts/app.html' %}
+{% block title %}编辑任务类型{% endblock %}
+{% block content %}
+<h1 class="mb-4">编辑任务类型：{{ task_type.name }}</h1>
+<div class="card"><div class="card-body">
+<form method="POST" action="{% url 'admin.task-types.update' task_type.id %}">{% csrf_token %}
+<table class="table table-bordered form-table mb-0">
+<tr><td class="form-table-label">类型名称 <font color="red">*</font></td><td><input name="name" class="form-control" value="{{ task_type.name }}" required></td></tr>
+<tr><td class="form-table-label">所属部门</td><td><select name="department_id" class="form-control"><option value="">不指定</option>{% for d in departments %}<option value="{{ d.id }}" {% if task_type.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></td></tr>
+<tr><td class="form-table-label">排序</td><td><input type="number" name="sort_order" class="form-control" value="{{ task_type.sort_order }}"></td></tr>
+</table>
+<div class="pt-3"><button class="btn btn-primary"><i class="fa fa-check"></i> 保存</button> <a href="{% url 'admin.task-types' %}" class="btn btn-outline-secondary">返回</a></div>
+</form>
+</div></div>
+<style>.form-table td{padding:12px 16px!important;vertical-align:middle}.form-table-label{width:130px;background-color:#f8f9fa!important;font-weight:600}</style>
+{% endblock %}

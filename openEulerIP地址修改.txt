@@ -1,0 +1,174 @@
+# openEuler 修改 IP：192.168.1.122 → 192.168.1.76
+
+> 
+> openEuler 默认使用 NetworkManager，**nmcli 是官方推荐（永久生效，重启不丢失）**，优先用这个。
+> ⚠️ 重要提醒：改 IP 会断开当前 ssh 连接！最好在服务器本地控制台操作，或者改完立刻用新 IP 重连。
+> 假设：网段是 `/24`，网关一般是 `192.168.1.1`，DNS：`114.114.114.114,8.8.8.8`
+
+## 步骤 1：先查网卡名称（必须先执行）
+
+```
+ip addr
+# 或者
+nmcli connection show
+```
+
+示例输出一般是 `ens33` / `enp0s3` / `enp4s0`。
+假设你的网卡连接名是 **ens33**（下面命令里全部替换成你自己查到的名字）
+
+## 方法一：nmcli 命令行直接修改【推荐，永久生效】
+
+```
+# 执行修改，替换 ens33 为你自己的连接名
+nmcli connection modify ens33 \
+ipv4.method manual \
+ipv4.addresses 192.168.1.76/24 \
+ipv4.gateway 192.168.1.1 \
+ipv4.dns 114.114.114.114,8.8.8.8 \
+connection.autoconnect yes
+```
+
+重载网卡激活新 IP：
+
+```
+nmcli connection down ens33 && nmcli connection up ens33
+```
+
+验证：
+
+```
+ip addr
+```
+
+看到 `192.168.1.76/24` 即成功。
+
+## 方法二：临时修改（重启服务器失效，测试用）
+
+```
+# 删除旧IP
+ip addr del 192.168.1.122/24 dev ens33
+# 添加新IP
+ip addr add 192.168.1.76/24 dev ens33
+```
+
+## 方法三：修改网卡配置文件（永久，vim 编辑）
+
+配置文件路径：`/etc/sysconfig/network-scripts/ifcfg-ens33`
+
+```
+vim /etc/sysconfig/network-scripts/ifcfg-ens33
+```
+
+修改 / 填写：
+
+```
+TYPE=Ethernet
+BOOTPROTO=none
+NAME=ens33
+DEVICE=ens33
+ONBOOT=yes
+IPADDR=192.168.1.76
+PREFIX=24
+GATEWAY=192.168.1.1
+DNS1=114.114.114.114
+DNS2=8.8.8.8
+```
+
+保存退出 `:wq`，重启网卡：
+
+```
+nmcli connection down ens33 && nmcli connection up ens33
+```
+
+# 常见坑
+
+1. 改完 ssh 断连：**改用新 IP：192.168.1.76** 登录
+2. 不通外网：核对网关 `192.168.1.1` 是否是你真实网关，不是要替换成实际网关
+3. 多网卡：确认修改的是**正在使用的那张网卡**，不要改错 lo 回环网卡
+4. DHCP 模式：`ipv4.method auto` 是 dhcp，静态 IP 必须改为 `manual` / BOOTPROTO=none
+
+# 追加到你之前的备忘文档
+
+```
+# 查看网卡列表
+ip addr
+nmcli connection show
+
+# nmcli修改静态IP（永久生效，示例ens33）
+nmcli connection modify ens33 \
+ipv4.method manual \
+ipv4.addresses 192.168.1.76/24 \
+ipv4.gateway 192.168.1.1 \
+ipv4.dns 114.114.114.114,8.8.8.8 \
+connection.autoconnect yes
+
+# 重载网卡生效
+nmcli connection down ens33 && nmcli connection up ens33
+
+# 临时修改IP（重启失效）
+ip addr del 192.168.1.122/24 dev ens33
+ip addr add 192.168.1.76/24 dev ens33
+```
+
+
+
+
+## 十三、网络配置（静态IP / 主机名 / DNS / 网关）
+# 查看网卡与IP
+ip addr
+nmcli connection show        # 列出所有网络连接名（重点拿到网卡连接名，如ens33）
+ip route                     # 查看当前网关
+
+# nmcli 设置静态IP【永久生效，推荐】
+# 替换 ens33 为你的网卡连接名
+nmcli connection modify ens33 \
+ipv4.method manual \
+ipv4.addresses 192.168.1.76/24 \
+ipv4.gateway 192.168.1.1 \
+ipv4.dns 114.114.114,8.8.8.8 \
+connection.autoconnect yes
+
+# 重载网卡，应用新配置（会断开当前ssh！用新IP重连）
+nmcli connection down ens33 && nmcli connection up ens33
+
+# 临时修改IP（重启服务器失效，测试用）
+ip addr del 192.168.1.122/24 dev ens33
+ip addr add 192.168.1.76/24 dev ens33
+
+# 修改主机名（永久）
+hostnamectl set-hostname openeuler-server
+hostname                      # 查看主机名
+
+# 单独修改DNS（不改动IP网关）
+nmcli connection modify ens33 ipv4.dns "223.5.5.5,114.114.114.114"
+nmcli connection up ens33
+
+# 单独修改网关
+nmcli connection modify ens33 ipv4.gateway 192.168.1.1
+nmcli connection up ens33
+
+# 切换网卡为DHCP自动获取IP
+nmcli connection modify ens33 ipv4.method auto
+nmcli connection up ens33
+
+# 网卡配置文件方式（手动编辑）
+vim /etc/sysconfig/network-scripts/ifcfg-ens33
+# 参考内容
+# TYPE=Ethernet
+# BOOTPROTO=none
+# NAME=ens33
+# DEVICE=ens33
+# ONBOOT=yes
+# IPADDR=192.168.1.76
+# PREFIX=24
+# GATEWAY=192.168.1.1
+# DNS1=223.5.5.5
+# DNS2=114.114.114.114
+
+# 网络故障简易排查
+ping 192.168.1.1             # 测试网关连通
+ping 223.5.5.5               # 测试外网连通（IP不通=网关问题）
+ping baidu.com               # 域名不通=DNS问题
+nslookup baidu.com           # DNS解析测试（dnf install bind-utils）
+tracepath baidu.com          # 路由追踪
+nmcli general status          # NetworkManager整体状态

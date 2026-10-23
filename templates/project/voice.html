@@ -1,0 +1,102 @@
+{% extends 'layouts/app.html' %}
+{% block title %}电话会议 - {{ project.name }}{% endblock %}
+{% block content %}
+{% include 'project/partials/project-tabs.html' with active_tab='voice' %}
+<div class="row no-gutters" style="height: calc(100vh - 220px);">
+    <div class="col-md-3 col-lg-2 px-0 d-flex flex-column"
+         style="border-right: 1px solid #dee2e6; background: #f8f9fa; max-height: calc(100vh - 220px);">
+        <div class="p-3 border-bottom bg-white">
+            <h6 class="mb-1 text-truncate"><i class="fa fa-phone text-primary me-1"></i>电话会议</h6>
+            <small>{% if is_host %}<span class="badge bg-success"><i class="fa fa-star me-1"></i>你是主持人</span>{% else %}<span class="badge bg-secondary">听众</span>{% endif %}</small>
+        </div>
+        <div class="px-3 py-2 border-bottom" style="font-size:12px;color:#999;">项目成员</div>
+        <div class="flex-grow-1 overflow-y-auto" id="voice-member-list">
+            <div class="text-center py-4 text-muted" style="font-size:13px;">加载中...</div>
+        </div>
+        <div class="p-2 border-top bg-white">
+            <button id="btn-apply-presenter" class="btn btn-outline-primary btn-sm w-100" {% if is_host %}disabled{% endif %}><i class="fa fa-hand-paper-o me-1"></i>申请演示</button>
+        </div>
+    </div>
+    <div class="col-md-9 col-lg-10 d-flex flex-column position-relative" style="max-height: calc(100vh - 220px);">
+        <div class="d-flex align-items-center justify-content-between p-2 border-bottom bg-white">
+            <div>当前演示者：<span id="current-presenter-name" class="fw-bold">未开始</span>
+                <span class="ms-3 small text-muted">文档：<span id="doc-current-name">未选择</span></span>
+                <span id="apply-banner" class="ms-3 alert alert-warning py-1 px-2 mb-0 d-none"></span></div>
+            <div class="d-flex gap-2 align-items-center">
+                <button id="btn-doc-panel" class="btn btn-sm btn-outline-primary" title="会议文档（与协同办公同一个文档库）"><i class="fa fa-folder-open-o me-1"></i>会议文档</button>
+                <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="edit-mode"><label class="form-check-label small" for="edit-mode">编辑模式</label></div>
+                <button id="btn-download" class="btn btn-sm btn-outline-secondary" disabled><i class="fa fa-download"></i> 下载</button>
+                {% if is_host %}<button id="btn-revoke-presenter" class="btn btn-sm btn-outline-danger"><i class="fa fa-undo me-1"></i>收回演示权</button>{% endif %}
+            </div>
+        </div>
+
+        {# 会议文档面板：与协同办公模块同一个文档库、同一套权限与操作（新建/上传/演示/编辑/下载/删除） #}
+        <div id="doc-panel" class="d-none position-absolute bg-white border rounded shadow"
+             style="top:54px; right:8px; width:940px; max-width:96%; max-height:72vh; overflow:auto; z-index:30;">
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                <span class="fw-bold"><i class="fa fa-folder-open-o me-1 text-primary"></i>会议文档
+                    <small class="text-muted ms-2">与「协同办公」共用同一个项目文档库</small></span>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'project.collab.index' project.id %}" class="btn btn-sm btn-link" target="_blank">在协同办公中管理</a>
+                    <button type="button" class="btn-close" id="btn-doc-panel-close" aria-label="关闭"></button>
+                </div>
+            </div>
+            <div class="px-3 py-2 border-bottom bg-light d-flex flex-wrap gap-3 align-items-end">
+                <div>
+                    <label class="form-label small mb-0">新建文档</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="doc-new-name" class="form-control" placeholder="文档名称" style="width:200px;">
+                        <select id="doc-new-ext" class="form-select" style="width:110px;">
+                            <option value="docx">Word</option>
+                            <option value="xlsx">Excel</option>
+                            <option value="pptx">PPT</option>
+                        </select>
+                        <button class="btn btn-primary" id="btn-doc-create"><i class="fa fa-plus me-1"></i>创建</button>
+                    </div>
+                </div>
+                <div class="ms-auto">
+                    <label class="form-label small mb-0">上传（docx / xlsx / pptx）</label>
+                    <div class="d-flex gap-2">
+                        <input type="file" id="file-upload" accept=".docx,.xlsx,.pptx" class="form-control form-control-sm" style="width:260px;">
+                        <button class="btn btn-sm btn-outline-secondary" id="btn-upload"><i class="fa fa-upload me-1"></i>上传</button>
+                    </div>
+                </div>
+                <div id="doc-panel-msg" class="small w-100"></div>
+            </div>
+            <div id="doc-panel-table">
+                {% if collab_documents %}
+                {% include 'collab/_document_table.html' with doc_mode='voice' documents=collab_documents %}
+                {% else %}
+                <div class="text-center text-muted py-4" style="font-size:13px;">该项目还没有协作文档，用上面的「新建 / 上传」添加。</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex-grow-1 bg-light d-flex align-items-center justify-content-center" id="doc-frame-wrap">
+            <div class="text-center text-muted" id="doc-empty-tip"><i class="fa fa-file-text-o" style="font-size:48px;"></i><p class="mt-2">主持人为你选择一篇文档后，这里将展示只读协同办公页面</p></div>
+            <iframe id="doc-frame" style="display:none; width:100%; height:100%; border:0; background:#fff;"></iframe>
+        </div>
+        <div class="p-2 border-top bg-white d-flex justify-content-center gap-3 align-items-center">
+            <button id="btn-mic" class="btn btn-secondary" disabled><i class="fa fa-microphone"></i> 静音</button>
+            <button id="btn-call" class="btn btn-primary"><i class="fa fa-phone me-1"></i>加入会议</button>
+            <button id="btn-follow" class="btn btn-outline-secondary" disabled><i class="fa fa-crosshairs me-1"></i>回到演示</button>
+        </div>
+    </div>
+</div>
+<div id="remote-audios"></div>
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="{{ server_url }}/web-apps/apps/api/documents/api.js"></script>
+<script>
+var VOICE_STATE = {
+    projectId: {{ project.id }},
+    roomId: {{ room.id }},
+    isHost: {{ is_host|yesno:'true,false' }},
+    currentUserId: {{ request.user.id }},
+    currentPresenterId: {% if room.current_presenter_id %}{{ room.current_presenter_id }}{% else %}null{% endif %},
+};
+var SIGNAL_WS = "{{ signal_ws }}";
+var JANUS_WS = "{{ janus_ws }}";
+var STUN = "{{ stun }}";
+</script>
+<script type="text/javascript" src="/static/js/voice-room.js"></script>
+{% endblock %}

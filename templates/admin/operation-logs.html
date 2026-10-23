@@ -1,0 +1,18 @@
+{% extends 'layouts/app.html' %}
+{% block title %}操作日志{% endblock %}
+{% block content %}
+<h1 class="mb-4">操作日志</h1>
+<div class="card">
+    <div class="card-header">操作日志列表</div>
+    <div class="card-body"><div class="table-responsive">
+        <table class="table table-striped">
+            <thead><tr><th>ID</th><th>模块</th><th>动作</th><th>内容</th><th>操作人</th><th>时间</th></tr></thead>
+            <tbody>
+            {% for l in logs %}
+            <tr><td>{{ l.id }}</td><td>{{ l.module }}</td><td>{{ l.action }}</td><td>{{ l.content }}</td><td>{% if l.user %}{{ l.user.name }}{% else %}-{% endif %}</td><td>{{ l.created_at|date:'Y-m-d H:i:s' }}</td></tr>
+            {% empty %}<tr><td colspan="6" class="text-center text-muted">暂无操作日志</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div></div>
+</div>
+{% endblock %}

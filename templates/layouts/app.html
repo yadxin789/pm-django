@@ -1,0 +1,603 @@
+{% load static %}{% load pm_tags %}<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <title>{% block title %}产品研发管理系统{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .active {
+            background-color: rgba(102, 126, 234, 0.3);
+            border-left: 3px solid #667eea;
+        }
+        .navbar {
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 0.75rem;
+        }
+        .user-name {
+            color: #333;
+            font-size: 0.9rem;
+        }
+        .user-role {
+            color: #666;
+            font-size: 0.75rem;
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    {% block head %}{% endblock %}
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-none d-md-block sidebar" aria-label="主导航">
+                <div class="sidebar-sticky">
+                    <div class="p-4">
+                        <h3 class="text-white text-center">产品研发管理系统</h3>
+                        <p class="mb-0" style="color: #aaa;">研发全生命周期管理</p>
+                    </div>
+                    <ul class="nav flex-column" role="navigation">
+                        {# 所有角色都有首页 #}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'dashboard' %}" href="{% url 'dashboard' %}">
+                                <i class="fa fa-home me-2"></i> 首页
+                            </a>
+                        </li>
+
+                        {# AI：管理员进入「AI 设置」管理，其它角色使用「AI 智能助手」 #}
+                        {% if is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'ai.*' %}" href="{% url 'ai.settings' %}">
+                                <i class="fa fa-robot me-2"></i> AI 设置
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'ai.*' %}" href="{% url 'ai.chat' %}">
+                                <i class="fa fa-robot me-2"></i> AI 智能助手
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.users' %}" href="{% url 'admin.users' %}">
+                                <i class="fa fa-users me-2"></i> 用户管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.departments' %}" href="{% url 'admin.departments' %}">
+                                <i class="fa fa-building me-2"></i> 部门管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.roles' %}" href="{% url 'admin.roles' %}">
+                                <i class="fa fa-key me-2"></i> 角色管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.statuses' %}" href="{% url 'admin.statuses' %}">
+                                <i class="fa fa-toggle-on me-2"></i> 状态管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.task-types' %}" href="{% url 'admin.task-types' %}">
+                                <i class="fa fa-list-alt me-2"></i> 任务类型管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.chat-messages*' %}" href="{% url 'admin.chat-messages' %}">
+                                <i class="fa fa-comments me-2"></i> 聊天记录管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.file-repository' %}" href="{% url 'admin.file-repository' %}">
+                                <i class="fa fa-folder-open me-2"></i> 文件仓库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'knowledge.*' %}" href="{% url 'knowledge.index' %}">
+                                <i class="fa fa-book me-2"></i> 知识库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.operation-logs' %}" href="{% url 'admin.operation-logs' %}">
+                                <i class="fa fa-file-text me-2"></i> 操作日志
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.trash*' %}" href="{% url 'admin.trash' %}">
+                                <i class="fa fa-trash me-2"></i> 回收站
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.send-notification' %}" href="{% url 'admin.send-notification' %}">
+                                <i class="fa fa-bell me-2"></i> 发送通知
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.services' %}" href="{% url 'admin.services' %}">
+                                <i class="fa fa-server me-2"></i> 后台服务
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'wecom.settings' %}" href="{% url 'wecom.settings' %}">
+                                <i class="fab fa-weixin me-2"></i> 企业微信
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if is_manager %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'project-template.*' %}" href="{% url 'project-template.index' %}">
+                                <i class="fa fa-clone me-2"></i> 项目模板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'project.create' %}" href="{% url 'project.create' %}">
+                                <i class="fa fa-plus-circle me-2"></i> 创建项目
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'project.my-projects*' %}" href="{% url 'project.my-projects' %}">
+                                <i class="fa fa-folder-open me-2"></i> 我的项目列表
+                                {% if my_project_count > 0 %}
+                                <span class="badge bg-primary ms-2">{{ my_project_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'extension.index' %}" href="{% url 'extension.index' %}">
+                                <i class="fa fa-calendar me-2"></i> 审核延期申请
+                                {% if pending_extension_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ pending_extension_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'file.resource-files' %}" href="{% url 'file.resource-files' %}">
+                                <i class="fa fa-file me-2"></i> 资料文件
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'knowledge.*' %}" href="{% url 'knowledge.index' %}">
+                                <i class="fa fa-book me-2"></i> 知识库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'notification.index' %}" href="{% url 'notification.index' %}">
+                                <i class="fa fa-bell me-2"></i> 通知中心
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'my-trash*' %}" href="{% url 'my-trash' %}">
+                                <i class="fa fa-trash me-2"></i> 我的回收站
+                                {% if my_trash_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ my_trash_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'profile.wecom.*' %}" href="{% url 'profile.wecom.index' %}">
+                                <i class="fab fa-weixin me-2"></i> 企业微信绑定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'wecom.file.*' %}" href="{% url 'wecom.file.index' %}">
+                                <i class="fa fa-inbox me-2"></i> 企微文件收件箱
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if is_project_manager and not is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'project.index' %}" href="{% url 'project.index' %}">
+                                <i class="fa fa-eye me-2"></i> 全部项目
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'extension.index' %}" href="{% url 'extension.index' %}">
+                                <i class="fa fa-calendar me-2"></i> 延期申请记录
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'file.resource-files' %}" href="{% url 'file.resource-files' %}">
+                                <i class="fa fa-file me-2"></i> 资料文件
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'knowledge.*' %}" href="{% url 'knowledge.index' %}">
+                                <i class="fa fa-book me-2"></i> 知识库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'notification.index' %}" href="{% url 'notification.index' %}">
+                                <i class="fa fa-bell me-2"></i> 通知中心
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'admin.send-notification' %}" href="{% url 'admin.send-notification' %}">
+                                <i class="fa fa-paper-plane me-2"></i> 发送指令通知
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'profile.wecom.*' %}" href="{% url 'profile.wecom.index' %}">
+                                <i class="fab fa-weixin me-2"></i> 企业微信绑定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'wecom.file.*' %}" href="{% url 'wecom.file.index' %}">
+                                <i class="fa fa-inbox me-2"></i> 企微文件收件箱
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if is_dept_manager and not is_admin and not is_manager and not is_project_manager %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'project.my-projects*' %}" href="{% url 'project.my-projects' %}">
+                                <i class="fa fa-folder-open me-2"></i> 我的项目列表
+                                {% if my_project_count > 0 %}
+                                <span class="badge bg-primary ms-2">{{ my_project_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'task.my-audit-tasks.pending-audit' %}" href="{% url 'task.my-audit-tasks.pending-audit' %}">
+                                <i class="fa fa-tasks me-2"></i> 我的待审核任务列表
+                                {% if my_pending_audit_task_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ my_pending_audit_task_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'file.resource-files' %}" href="{% url 'file.resource-files' %}">
+                                <i class="fa fa-file me-2"></i> 资料文件
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'knowledge.*' %}" href="{% url 'knowledge.index' %}">
+                                <i class="fa fa-book me-2"></i> 知识库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'profile.wecom.*' %}" href="{% url 'profile.wecom.index' %}">
+                                <i class="fab fa-weixin me-2"></i> 企业微信绑定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'wecom.file.*' %}" href="{% url 'wecom.file.index' %}">
+                                <i class="fa fa-inbox me-2"></i> 企微文件收件箱
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if is_executor and not is_admin and not is_manager and not is_project_manager and not is_dept_manager %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'project.my-projects*' %}" href="{% url 'project.my-projects' %}">
+                                <i class="fa fa-folder-open me-2"></i> 我的项目列表
+                                {% if my_project_count > 0 %}
+                                <span class="badge bg-primary ms-2">{{ my_project_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'task.my-tasks.pending-execution' %}" href="{% url 'task.my-tasks.pending-execution' %}">
+                                <i class="fa fa-tasks me-2"></i> 我的待执行任务列表
+                                {% if my_pending_execution_task_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ my_pending_execution_task_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'file.resource-files' %}" href="{% url 'file.resource-files' %}">
+                                <i class="fa fa-file me-2"></i> 资料文件
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'knowledge.*' %}" href="{% url 'knowledge.index' %}">
+                                <i class="fa fa-book me-2"></i> 知识库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'notification.index' %}" href="{% url 'notification.index' %}">
+                                <i class="fa fa-bell me-2"></i> 通知中心
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'my-trash*' %}" href="{% url 'my-trash' %}">
+                                <i class="fa fa-trash me-2"></i> 我的回收站
+                                {% if my_trash_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ my_trash_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'profile.wecom.*' %}" href="{% url 'profile.wecom.index' %}">
+                                <i class="fab fa-weixin me-2"></i> 企业微信绑定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'wecom.file.*' %}" href="{% url 'wecom.file.index' %}">
+                                <i class="fa fa-inbox me-2"></i> 企微文件收件箱
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if is_support and not is_admin and not is_manager and not is_project_manager and not is_dept_manager and not is_executor %}
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'support.index' %}" href="{% url 'support.index' %}">
+                                <i class="fa fa-life-ring me-2"></i> 支援中心
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'file.manage-resource-files' %}" href="{% url 'file.manage-resource-files' %}">
+                                <i class="fa fa-file me-2"></i> 资料文件管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'notification.index' %}" href="{% url 'notification.index' %}">
+                                <i class="fa fa-bell me-2"></i> 通知中心
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'knowledge.*' %}" href="{% url 'knowledge.index' %}">
+                                <i class="fa fa-book me-2"></i> 知识库
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'profile.wecom.*' %}" href="{% url 'profile.wecom.index' %}">
+                                <i class="fab fa-weixin me-2"></i> 企业微信绑定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% route_active 'wecom.file.*' %}" href="{% url 'wecom.file.index' %}">
+                                <i class="fa fa-inbox me-2"></i> 企微文件收件箱
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+
+            <main role="main" class="col-md-10 ms-sm-auto px-4">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <div class="container-fluid">
+                        <button class="navbar-toggler d-md-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar" aria-label="打开导航菜单">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                            <ul class="navbar-nav">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'notification.index' %}" style="display: flex; align-items: center;">
+                                        <i class="fa fa-bell" style="font-size: 18px;"></i>
+                                        {% if unread_count > 0 %}
+                                        <span class="badge badge-danger rounded-pill ms-1" style="background-color: #dc3545; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: inline-flex; align-items: center; justify-content: center;">{{ unread_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+
+                                {# 我的回收站：仅登录的非管理员显示（管理员使用左侧菜单里的统一回收站） #}
+                                {% if not is_admin %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'my-trash' %}" title="我的回收站" style="display: flex; align-items: center;">
+                                        <i class="fa fa-trash" style="font-size: 18px;"></i>
+                                        <span class="badge rounded-pill ms-1" style="background-color: {% if my_trash_count > 0 %}#dc3545{% else %}#6c757d{% endif %}; color: white; min-width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px;">{{ my_trash_count|default:0 }}</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                <li class="nav-item dropdown user-info">
+                                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="用户中心">
+                                        <div class="user-avatar">
+                                            {% if current_user.avatar %}
+                                                {% if current_user.avatar|startswith:'defaults/' %}
+                                                    <img src="{% static 'avatars/' %}{{ current_user.avatar }}" alt="用户头像" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                                                {% else %}
+                                                    <img src="/media/avatars/{{ current_user.avatar }}" alt="用户头像" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                                                {% endif %}
+                                            {% else %}
+                                                {{ user_name|slice:"1" }}
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="user-name">{{ user_name }}</div>
+                                            <div class="user-role">{{ user_role }}</div>
+                                        </div>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userMenu" style="min-width: 170px;">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'profile.edit' %}">
+                                                <i class="fa fa-user me-2"></i>基本资料
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'profile.password.edit' %}">
+                                                <i class="fa fa-key me-2"></i>修改密码
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'profile.avatar' %}">
+                                                <i class="fa fa-image me-2"></i>上传头像
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{% url 'logout' %}" onsubmit="return confirm('确定退出登录？')">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="fa fa-sign-out me-2"></i>退出登录
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'profile.wecom.index' %}" style="display: flex; align-items: center;">
+                                        <i class="fab fa-weixin" style="font-size: 18px;"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="globalMessageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" id="globalMessageHeader">
+                    <h5 class="modal-title" id="globalMessageTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body" id="globalMessageBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="globalMessageBtn">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel" style="background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); color: #fff; max-width: 280px;">
+        <div class="offcanvas-header border-bottom border-secondary">
+            <h5 class="offcanvas-title text-white" id="mobileSidebarLabel">产品研发管理系统</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="关闭"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <ul class="nav flex-column" style="font-size: 14px;">
+                <li class="nav-item">
+                    <a class="nav-link {% route_active 'dashboard' %}" href="{% url 'dashboard' %}" style="color: #fff;">
+                        <i class="fa fa-home me-2"></i> 首页
+                    </a>
+                </li>
+                {# AI：管理员进入「AI 设置」，其它角色使用「AI 智能助手」 #}
+                {% if is_admin %}
+                <li class="nav-item"><a class="nav-link {% route_active 'ai.*' %}" href="{% url 'ai.settings' %}" style="color: #fff;"><i class="fa fa-robot me-2"></i> AI 设置</a></li>
+                {% else %}
+                <li class="nav-item"><a class="nav-link {% route_active 'ai.*' %}" href="{% url 'ai.chat' %}" style="color: #fff;"><i class="fa fa-robot me-2"></i> AI 智能助手</a></li>
+                {% endif %}
+                {% if is_admin %}
+                <li class="nav-item"><a class="nav-link {% route_active 'admin.users' %}" href="{% url 'admin.users' %}" style="color: #fff;"><i class="fa fa-users me-2"></i> 用户管理</a></li>
+                <li class="nav-item"><a class="nav-link {% route_active 'admin.departments' %}" href="{% url 'admin.departments' %}" style="color: #fff;"><i class="fa fa-building me-2"></i> 部门管理</a></li>
+                <li class="nav-item"><a class="nav-link {% route_active 'admin.services' %}" href="{% url 'admin.services' %}" style="color: #fff;"><i class="fa fa-server me-2"></i> 后台服务</a></li>
+                <li class="nav-item"><a class="nav-link {% route_active 'admin.wecom.*' %}" href="{% url 'admin.wecom.settings' %}" style="color: #fff;"><i class="fab fa-weixin me-2"></i> 企业微信</a></li>
+                {% endif %}
+                {% if is_manager %}
+                <li class="nav-item"><a class="nav-link {% route_active 'project.create' %}" href="{% url 'project.create' %}" style="color: #fff;"><i class="fa fa-plus-circle me-2"></i> 创建项目</a></li>
+                <li class="nav-item"><a class="nav-link {% route_active 'project.my-projects*' %}" href="{% url 'project.my-projects' %}" style="color: #fff;"><i class="fa fa-folder-open me-2"></i> 我的项目列表</a></li>
+                {% endif %}
+                {% if is_executor or is_dept_manager %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'project.my-projects' %}" style="color: #fff;"><i class="fa fa-folder-open me-2"></i> 我的项目列表</a></li>
+                {% endif %}
+                {% if is_executor %}
+                <li class="nav-item"><a class="nav-link {% route_active 'task.my-tasks.pending-execution' %}" href="{% url 'task.my-tasks.pending-execution' %}" style="color: #fff;"><i class="fa fa-tasks me-2"></i> 待执行任务</a></li>
+                {% endif %}
+                {% if is_dept_manager %}
+                <li class="nav-item"><a class="nav-link {% route_active 'task.my-audit-tasks.pending-audit' %}" href="{% url 'task.my-audit-tasks.pending-audit' %}" style="color: #fff;"><i class="fa fa-tasks me-2"></i> 待审核任务</a></li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link {% route_active 'notification.index' %}" href="{% url 'notification.index' %}" style="color: #fff;"><i class="fa fa-bell me-2"></i> 通知中心</a></li>
+                <li class="nav-item"><a class="nav-link {% route_active 'profile.wecom.*' %}" href="{% url 'profile.wecom.index' %}" style="color: #fff;"><i class="fab fa-weixin me-2"></i> 企业微信绑定</a></li>
+                <li class="nav-item"><a class="nav-link {% route_active 'wecom.file.*' %}" href="{% url 'wecom.file.index' %}" style="color: #fff;"><i class="fa fa-inbox me-2"></i> 企微文件收件箱</a></li>
+                <li class="nav-item">
+                    <form method="POST" action="{% url 'logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link btn btn-link" style="color: #fff; border: none; background: none; padding: 0 1rem;">
+                            <i class="fa fa-sign-out me-2"></i> 退出登录
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'js/echarts.min.js' %}"></script>
+    <script src="{% static 'js/pdfjs.min.js' %}"></script>
+    <script src="{% static 'js/mammoth.min.js' %}"></script>
+    <script src="{% static 'js/xlsx.full.min.js' %}"></script>
+    <script>
+        let bsModalInstance = null;
+
+        function showGlobalModal(type, title, message) {
+            const modal = document.getElementById('globalMessageModal');
+            if (!modal) return;
+            if (!bsModalInstance) { bsModalInstance = new bootstrap.Modal(modal); }
+            const header = document.getElementById('globalMessageHeader');
+            const titleEl = document.getElementById('globalMessageTitle');
+            const body = document.getElementById('globalMessageBody');
+            const btn = document.getElementById('globalMessageBtn');
+            header.className = 'modal-header';
+            btn.className = 'btn';
+            if (type === 'success') {
+                header.classList.add('bg-success', 'text-white');
+                btn.classList.add('btn-success');
+                titleEl.innerHTML = '<i class="fa fa-check-circle mr-2"></i> ' + title;
+            } else {
+                header.classList.add('bg-danger', 'text-white');
+                btn.classList.add('btn-danger');
+                titleEl.innerHTML = '<i class="fa fa-exclamation-circle mr-2"></i> ' + title;
+            }
+            body.innerHTML = message ? String(message).split("\n").join('<br>') : '';
+            bsModalInstance.show();
+        }
+
+        (function showServerSideMessages() {
+            {% for message in messages %}
+            {% if message.tags == 'success' %}
+            showGlobalModal('success', '操作成功', '{{ message|escapejs }}');
+            {% else %}
+            showGlobalModal('danger', '操作失败', '{{ message|escapejs }}');
+            {% endif %}
+            {% endfor %}
+        })();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

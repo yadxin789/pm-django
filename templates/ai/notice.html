@@ -1,0 +1,23 @@
+{% extends 'layouts/app.html' %}
+{% block title %}AI 智能助手{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="text-center mt-5">
+                <i class="fa fa-robot fa-4x text-muted mb-3 d-block"></i>
+                <h4 class="fw-bold mb-2">AI 智能助手</h4>
+                <div class="alert alert-warning text-start mt-3">
+                    <h5 class="alert-heading fw-bold"><i class="fa fa-info-circle me-2"></i>管理员尚未开通</h5>
+                    <p class="mb-2">AI 智能助手由<b>系统管理员</b>统一开通。开通后，所有用户即可正常使用智能问答、数据洞察与自然语言生成文档等功能。</p>
+                    <p class="mb-0">如需使用，请联系系统管理员在<b>「AI 设置」</b>中配置并启用。</p>
+                </div>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary mt-3">
+                    <i class="fa fa-home me-1"></i> 返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
